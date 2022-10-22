@@ -10,6 +10,7 @@ from my_dataset import DriveDataset
 import transforms as T
 import yaml 
 
+
 class extract_dict(object):
     """
     The object can be read by call instead of using dictionary
@@ -40,29 +41,24 @@ class SegmentationPresetTrain:
 
 
 class SegmentationPresetEval:
-    def __init__(self, mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)):
+    def __init__(self, ):
         self.transforms = T.Compose([
             T.ToTensor(),
-            T.Normalize(mean=mean, std=std),
+            T.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
         ])
 
     def __call__(self, img, target):
         return self.transforms(img, target)
 
 
-def get_transform(train, mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)):
+def get_transform(train):
     base_size = 565
     crop_size = 480
 
     if train:
-        return SegmentationPresetTrain(base_size, crop_size, mean=mean, std=std)
+        return SegmentationPresetTrain(base_size, crop_size, mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))
     else:
-        return SegmentationPresetEval(mean=mean, std=std)
-
-
-def create_model(num_classes):
-    model = UNet(in_channels=3, num_classes=num_classes, base_c=32)
-    return model
+        return SegmentationPresetEval()
 
 
 def main(configs):
@@ -104,9 +100,9 @@ def main(configs):
                                              pin_memory=True,
                                              collate_fn=val_dataset.collate_fn)
 
-    model = create_model(num_classes=num_classes)
-    model.to(device)
-
+    model = UNet(in_channels=3, num_classes=num_classes, base_c=32).to(device)
+    total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    print(f"The total number of trainable parameters are {total_params}")
     params_to_optimize = [p for p in model.parameters() if p.requires_grad]
 
     optimizer = torch.optim.SGD(
@@ -169,40 +165,7 @@ def main(configs):
     total_time_str = str(datetime.timedelta(seconds=int(total_time)))
     print("training time {}".format(total_time_str))
 
-
-# def parse_args():
-#     import argparse
-#     parser = argparse.ArgumentParser(description="pytorch unet training")
-
-#     # exclude background
-#     parser.add_argument("--num-classes", default=2, type=int)
-#     parser.add_argument("-b", "--batch-size", default=4, type=int)
-#     parser.add_argument("--epochs", default=200, type=int, metavar="N",
-#                         help="number of total epochs to train")
-
-#     parser.add_argument('--lr', default=0.01, type=float, help='initial learning rate')
-#     parser.add_argument('--momentum', default=0.9, type=float, metavar='M',
-#                         help='momentum')
-#     parser.add_argument('--wd', '--weight-decay', default=1e-4, type=float,
-#                         metavar='W', help='weight decay (default: 1e-4)',
-#                         dest='weight_decay')
-#     parser.add_argument('--print-freq', default=1, type=int, help='print frequency')
-#     parser.add_argument('--resume', default='', help='resume from checkpoint')
-#     parser.add_argument('--start-epoch', default=0, type=int, metavar='N',
-#                         help='start epoch')
-#     parser.add_argument('--save-best', default=True, type=bool, help='only save best dice weights')
-#     # Mixed precision training parameters
-#     parser.add_argument("--amp", default=False, type=bool,
-#                         help="Use torch.cuda.amp for mixed precision training")
-
-#     args = parser.parse_args()
-
-#     return args
-
-
 if __name__ == '__main__':
-    # args = parse_args()
-
     if not os.path.exists("./save_weights"):
         os.mkdir("./save_weights")
 
