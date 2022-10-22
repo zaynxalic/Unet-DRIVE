@@ -10,6 +10,13 @@ from my_dataset import DriveDataset
 import transforms as T
 import yaml 
 
+class extract_dict(object):
+    """
+    The object can be read by call instead of using dictionary
+    """
+    def __init__(self, d):
+        self.__dict__ = d
+
 class SegmentationPresetTrain:
     def __init__(self, base_size, crop_size, hflip_prob=0.5, vflip_prob=0.5,
                  mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)):
@@ -58,15 +65,15 @@ def create_model(num_classes):
     return model
 
 
-def main(args):
+def main(configs):
     if torch.cuda.is_available():
         if torch.cuda.device_count() > 1:
             torch.device(f'cuda:{torch.cuda.device_count()-1}')
     else:
         device = torch.device('cpu')
-    batch_size = args.batch_size
+    batch_size = configs.batch_size
     # segmentation nun_classes + background
-    num_classes = args.num_classes
+    num_classes = configs.num_classes
 
     # using compute_mean_std.py
     mean = (0.709, 0.381, 0.224)
@@ -104,28 +111,28 @@ def main(args):
 
     optimizer = torch.optim.SGD(
         params_to_optimize,
-        lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay
+        lr=configs.lr, momentum=configs.momentum, weight_decay=configs.weight_decay
     )
 
-    scaler = torch.cuda.amp.GradScaler() if args.amp else None
+    scaler = torch.cuda.amp.GradScaler() if configs.amp == 1 else None
 
     # 创建学习率更新策略，这里是每个step更新一次(不是每个epoch)
-    lr_scheduler = create_lr_scheduler(optimizer, len(train_loader), args.epochs, warmup=True)
+    lr_scheduler = create_lr_scheduler(optimizer, len(train_loader), configs.epochs, warmup=True)
 
-    if args.resume:
-        checkpoint = torch.load(args.resume, map_location='cpu')
+    if configs.resume == 1:
+        checkpoint = torch.load(configs.resume, map_location='cpu')
         model.load_state_dict(checkpoint['model'])
         optimizer.load_state_dict(checkpoint['optimizer'])
         lr_scheduler.load_state_dict(checkpoint['lr_scheduler'])
-        args.start_epoch = checkpoint['epoch'] + 1
-        if args.amp:
+        configs.start_epoch = checkpoint['epoch'] + 1
+        if configs.amp == 1:
             scaler.load_state_dict(checkpoint["scaler"])
 
     best_dice = 0.
     start_time = time.time()
-    for epoch in range(args.start_epoch, args.epochs):
+    for epoch in range(configs.start_epoch, configs.epochs):
         mean_loss, lr = train_one_epoch(model, optimizer, train_loader, device, epoch, num_classes,
-                                        lr_scheduler=lr_scheduler, print_freq=args.print_freq, scaler=scaler)
+                                        lr_scheduler=lr_scheduler, print_freq=configs.print_freq, scaler=scaler)
 
         confmat, dice = evaluate(model, val_loader, device=device, num_classes=num_classes)
         val_info = str(confmat)
@@ -140,7 +147,7 @@ def main(args):
                          f"dice coefficient: {dice:.3f}\n"
             f.write(train_info + val_info + "\n\n")
 
-        if args.save_best is True:
+        if configs.save_best == 1:
             if best_dice < dice:
                 best_dice = dice
             else:
@@ -149,12 +156,11 @@ def main(args):
         save_file = {"model": model.state_dict(),
                      "optimizer": optimizer.state_dict(),
                      "lr_scheduler": lr_scheduler.state_dict(),
-                     "epoch": epoch,
-                     "args": args}
-        if args.amp:
+                     "epoch": epoch}
+        if configs.amp == 1:
             save_file["scaler"] = scaler.state_dict()
 
-        if args.save_best is True:
+        if configs.save_best ==1:
             torch.save(save_file, "save_weights/best_model.pth")
         else:
             torch.save(save_file, "save_weights/model_{}.pth".format(epoch))
@@ -164,38 +170,38 @@ def main(args):
     print("training time {}".format(total_time_str))
 
 
-def parse_args():
-    import argparse
-    parser = argparse.ArgumentParser(description="pytorch unet training")
+# def parse_args():
+#     import argparse
+#     parser = argparse.ArgumentParser(description="pytorch unet training")
 
-    # exclude background
-    parser.add_argument("--num-classes", default=2, type=int)
-    parser.add_argument("-b", "--batch-size", default=4, type=int)
-    parser.add_argument("--epochs", default=200, type=int, metavar="N",
-                        help="number of total epochs to train")
+#     # exclude background
+#     parser.add_argument("--num-classes", default=2, type=int)
+#     parser.add_argument("-b", "--batch-size", default=4, type=int)
+#     parser.add_argument("--epochs", default=200, type=int, metavar="N",
+#                         help="number of total epochs to train")
 
-    parser.add_argument('--lr', default=0.01, type=float, help='initial learning rate')
-    parser.add_argument('--momentum', default=0.9, type=float, metavar='M',
-                        help='momentum')
-    parser.add_argument('--wd', '--weight-decay', default=1e-4, type=float,
-                        metavar='W', help='weight decay (default: 1e-4)',
-                        dest='weight_decay')
-    parser.add_argument('--print-freq', default=1, type=int, help='print frequency')
-    parser.add_argument('--resume', default='', help='resume from checkpoint')
-    parser.add_argument('--start-epoch', default=0, type=int, metavar='N',
-                        help='start epoch')
-    parser.add_argument('--save-best', default=True, type=bool, help='only save best dice weights')
-    # Mixed precision training parameters
-    parser.add_argument("--amp", default=False, type=bool,
-                        help="Use torch.cuda.amp for mixed precision training")
+#     parser.add_argument('--lr', default=0.01, type=float, help='initial learning rate')
+#     parser.add_argument('--momentum', default=0.9, type=float, metavar='M',
+#                         help='momentum')
+#     parser.add_argument('--wd', '--weight-decay', default=1e-4, type=float,
+#                         metavar='W', help='weight decay (default: 1e-4)',
+#                         dest='weight_decay')
+#     parser.add_argument('--print-freq', default=1, type=int, help='print frequency')
+#     parser.add_argument('--resume', default='', help='resume from checkpoint')
+#     parser.add_argument('--start-epoch', default=0, type=int, metavar='N',
+#                         help='start epoch')
+#     parser.add_argument('--save-best', default=True, type=bool, help='only save best dice weights')
+#     # Mixed precision training parameters
+#     parser.add_argument("--amp", default=False, type=bool,
+#                         help="Use torch.cuda.amp for mixed precision training")
 
-    args = parser.parse_args()
+#     args = parser.parse_args()
 
-    return args
+#     return args
 
 
 if __name__ == '__main__':
-    args = parse_args()
+    # args = parse_args()
 
     if not os.path.exists("./save_weights"):
         os.mkdir("./save_weights")
@@ -203,8 +209,6 @@ if __name__ == '__main__':
     class EnvVarLoader(yaml.SafeLoader):
         pass
     
-    newconfig = yaml.load(open('train.config'), Loader=EnvVarLoader)
-    
-    
-    print(newconfig)
-    main(args)
+    configs = yaml.load(open('train.config'), Loader=EnvVarLoader)
+    configs = extract_dict(configs)
+    main(configs = configs)
