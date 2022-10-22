@@ -1,4 +1,4 @@
-# U-Net(Convolutional Networks for Biomedical Image Segmentation)
+# U-Net(Convolutional Networks for Biomedical Sementic Segmentation)
 
 ## 该项目主要参考以下开源仓库
 * [https://github.com/milesial/Pytorch-UNet](https://github.com/milesial/Pytorch-UNet)

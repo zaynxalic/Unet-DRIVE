@@ -1,5 +1,4 @@
 import os
-# os.environ['CUDA_VISIBLE_DEVICES']= 1
 import time
 import datetime
 
@@ -62,7 +61,7 @@ def create_model(num_classes):
 def main(args):
     if torch.cuda.is_available():
         if torch.cuda.device_count() > 1:
-            torch.device(f'cuda:{torch.cuda.device_count()[-1]}')
+            torch.device(f'cuda:{torch.cuda.device_count()-1}')
     else:
         device = torch.device('cpu')
     batch_size = args.batch_size
