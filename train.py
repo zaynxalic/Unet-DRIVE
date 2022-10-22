@@ -8,7 +8,7 @@ from src import UNet
 from train_utils import train_one_epoch, evaluate, create_lr_scheduler
 from my_dataset import DriveDataset
 import transforms as T
-
+import yaml 
 
 class SegmentationPresetTrain:
     def __init__(self, base_size, crop_size, hflip_prob=0.5, vflip_prob=0.5,
@@ -66,7 +66,7 @@ def main(args):
         device = torch.device('cpu')
     batch_size = args.batch_size
     # segmentation nun_classes + background
-    num_classes = args.num_classes + 1
+    num_classes = args.num_classes
 
     # using compute_mean_std.py
     mean = (0.709, 0.381, 0.224)
@@ -75,11 +75,11 @@ def main(args):
     # 用来保存训练以及验证过程中信息
     results_file = "results{}.txt".format(datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
 
-    train_dataset = DriveDataset(args.data_path,
+    train_dataset = DriveDataset(r"./",
                                  train=True,
                                  transforms=get_transform(train=True, mean=mean, std=std))
 
-    val_dataset = DriveDataset(args.data_path,
+    val_dataset = DriveDataset(r"./",
                                train=False,
                                transforms=get_transform(train=False, mean=mean, std=std))
 
@@ -168,10 +168,8 @@ def parse_args():
     import argparse
     parser = argparse.ArgumentParser(description="pytorch unet training")
 
-    parser.add_argument("--data-path", default=r"./", help="DRIVE root")
     # exclude background
-    parser.add_argument("--num-classes", default=1, type=int)
-    parser.add_argument("--device", default="cuda", help="training device")
+    parser.add_argument("--num-classes", default=2, type=int)
     parser.add_argument("-b", "--batch-size", default=4, type=int)
     parser.add_argument("--epochs", default=200, type=int, metavar="N",
                         help="number of total epochs to train")
@@ -202,4 +200,11 @@ if __name__ == '__main__':
     if not os.path.exists("./save_weights"):
         os.mkdir("./save_weights")
 
+    class EnvVarLoader(yaml.SafeLoader):
+        pass
+    
+    newconfig = yaml.load(open('train.config'), Loader=EnvVarLoader)
+    
+    
+    print(newconfig)
     main(args)

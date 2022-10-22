@@ -2,6 +2,15 @@ import numpy as np
 import re
 import matplotlib.pyplot as plt
 
+
+"""
+    Read the output result and generate the list of 
+    1) epochs
+    2) training_losses 
+    3) learning_rates
+    4) global corrects
+"""
+
 result = open('results20221022-213857.txt' ,'r')
 line = result.readline()
 epochs = []
