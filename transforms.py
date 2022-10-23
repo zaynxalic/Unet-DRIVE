@@ -1,18 +1,16 @@
 import numpy as np
 import random
-
 import torch
 from torchvision import transforms as T
 from torchvision.transforms import functional as F
 
 
 def pad_if_smaller(img, size, fill=0):
-    # 如果图像最小边长小于给定size，则用数值fill进行padding
     min_size = min(img.size)
     if min_size < size:
         ow, oh = img.size
-        padh = size - oh if oh < size else 0
-        padw = size - ow if ow < size else 0
+        padh = max(size - oh, 0)
+        padw = max(size - ow, 0)
         img = F.pad(img, (0, 0, padw, padh), fill=fill)
     return img
 
@@ -36,10 +34,7 @@ class RandomResize(object):
 
     def __call__(self, image, target):
         size = random.randint(self.min_size, self.max_size)
-        # 这里size传入的是int类型，所以是将图像的最小边长缩放到size大小
         image = F.resize(image, size)
-        # 这里的interpolation注意下，在torchvision(0.9.0)以后才有InterpolationMode.NEAREST
-        # 如果是之前的版本需要使用PIL.Image.NEAREST
         target = F.resize(target, size, interpolation=T.InterpolationMode.NEAREST)
         return image, target
 

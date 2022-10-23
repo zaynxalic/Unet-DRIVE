@@ -9,7 +9,10 @@ from train_utils import train_one_epoch, evaluate, create_lr_scheduler
 from my_dataset import DriveDataset
 import transforms as T
 import yaml 
+from torchvision import transforms as F
 
+class EnvVarLoader(yaml.SafeLoader):
+    pass
 
 class extract_dict(object):
     """
@@ -18,47 +21,70 @@ class extract_dict(object):
     def __init__(self, d):
         self.__dict__ = d
 
-class SegmentationPresetTrain:
-    def __init__(self, base_size, crop_size, hflip_prob=0.5, vflip_prob=0.5,
-                 mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)):
-        min_size = int(0.5 * base_size)
-        max_size = int(1.2 * base_size)
+class Preprocessing:
+    def __init__(self, 
+        base_size = None, 
+        crop_size = None,
+        hflip_prob = 0.5,
+        vflip_prob = 0.5,
+        mean = (0.485, 0.456, 0.406), 
+        std = (0.229, 0.224, 0.225), 
+        train = True) -> None:
+        
+        if train:
+            assert base_size is not None and crop_size is not None
 
-        trans = [T.RandomResize(min_size, max_size)]
-        if hflip_prob > 0:
-            trans.append(T.RandomHorizontalFlip(hflip_prob))
-        if vflip_prob > 0:
-            trans.append(T.RandomVerticalFlip(vflip_prob))
-        trans.extend([
-            T.RandomCrop(crop_size),
-            T.ToTensor(),
-            T.Normalize(mean=mean, std=std),
-        ])
-        self.transforms = T.Compose(trans)
+            min_size :int = int(0.5 * base_size)
+            max_size :int = int(1.2 * base_size)
 
+            trans = [T.RandomResize(min_size, max_size)]
+            if hflip_prob > 0:
+                trans.append(T.RandomHorizontalFlip(hflip_prob))
+            if vflip_prob > 0:
+                trans.append(T.RandomVerticalFlip(vflip_prob))
+            trans.extend([
+                T.RandomCrop(crop_size),
+                T.ToTensor(),
+                T.Normalize(mean=mean, std=std),
+            ])
+            self.transforms = T.Compose(trans)
+
+        else: 
+            trans = [ T.ToTensor(), T.Normalize(mean=mean, std=std),]
+            self.transforms = T.Compose(trans)
+        
     def __call__(self, img, target):
         return self.transforms(img, target)
+# class SegmentationTrain:
+    # def __init__(self, base_size, crop_size, hflip_prob=0.5, vflip_prob=0.5,
+    #              mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)):
+    #     min_size = int(0.5 * base_size)
+    #     max_size = int(1.2 * base_size)
+
+    #     trans = [T.RandomResize(min_size, max_size)]
+    #     if hflip_prob > 0:
+    #         trans.append(T.RandomHorizontalFlip(hflip_prob))
+    #     if vflip_prob > 0:
+    #         trans.append(T.RandomVerticalFlip(vflip_prob))
+    #     trans.extend([
+    #         T.RandomCrop(crop_size),
+    #         T.ToTensor(),
+    #         T.Normalize(mean=mean, std=std),
+    #     ])
+    #     self.transforms = T.Compose(trans)
+
+    # def __call__(self, img, target):
+    #     return self.transforms(img, target)
 
 
-class SegmentationPresetEval:
-    def __init__(self, ):
-        self.transforms = T.Compose([
-            T.ToTensor(),
-            T.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
-        ])
-
-    def __call__(self, img, target):
-        return self.transforms(img, target)
-
-
-def get_transform(train):
-    base_size = 565
-    crop_size = 480
-
-    if train:
-        return SegmentationPresetTrain(base_size, crop_size, mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))
-    else:
-        return SegmentationPresetEval()
+# class SegmentationEval:
+    # def __init__(self, mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)):
+    #     self.transforms = T.Compose([
+    #         T.ToTensor(),
+    #         T.Normalize(mean=mean, std=std),
+    #     ])
+    # def __call__(self, img, target):
+    #     return self.transforms(img, target)
 
 
 def main(configs):
@@ -80,11 +106,11 @@ def main(configs):
 
     train_dataset = DriveDataset(r"./",
                                  train=True,
-                                 transforms=get_transform(train=True, mean=mean, std=std))
+                                 transforms=Preprocessing(base_size = 565, crop_size = 480, mean=mean, std=std, train = True))
 
     val_dataset = DriveDataset(r"./",
                                train=False,
-                               transforms=get_transform(train=False, mean=mean, std=std))
+                               transforms=Preprocessing(base_size = 565, crop_size = 480, mean=mean, std=std, train = False))
 
     num_workers = min([os.cpu_count(), batch_size if batch_size > 1 else 0, 8])
     train_loader = torch.utils.data.DataLoader(train_dataset,
@@ -168,9 +194,6 @@ def main(configs):
 if __name__ == '__main__':
     if not os.path.exists("./save_weights"):
         os.mkdir("./save_weights")
-
-    class EnvVarLoader(yaml.SafeLoader):
-        pass
     
     configs = yaml.load(open('train.config'), Loader=EnvVarLoader)
     configs = extract_dict(configs)
