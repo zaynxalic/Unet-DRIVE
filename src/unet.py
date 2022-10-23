@@ -2,7 +2,7 @@ from typing import Dict
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
+from .CBAM import *
 
 class DoubleConv(nn.Sequential):
     def __init__(self, in_channels, out_channels, mid_channels=None):
@@ -81,8 +81,11 @@ class UNet(nn.Module):
         self.up4 = Up(base_c * 2, base_c, bilinear)
         self.out_conv = OutConv(base_c, num_classes)
 
+        self.cbam = CBAM(base_c, 16)
+
     def forward(self, x: torch.Tensor) -> Dict[str, torch.Tensor]:
         x1 = self.in_conv(x)
+        x1 = self.cbam(x1)
         x2 = self.down1(x1)
         x3 = self.down2(x2)
         x4 = self.down3(x3)

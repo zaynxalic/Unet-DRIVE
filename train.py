@@ -55,37 +55,6 @@ class Preprocessing:
         
     def __call__(self, img, target):
         return self.transforms(img, target)
-# class SegmentationTrain:
-    # def __init__(self, base_size, crop_size, hflip_prob=0.5, vflip_prob=0.5,
-    #              mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)):
-    #     min_size = int(0.5 * base_size)
-    #     max_size = int(1.2 * base_size)
-
-    #     trans = [T.RandomResize(min_size, max_size)]
-    #     if hflip_prob > 0:
-    #         trans.append(T.RandomHorizontalFlip(hflip_prob))
-    #     if vflip_prob > 0:
-    #         trans.append(T.RandomVerticalFlip(vflip_prob))
-    #     trans.extend([
-    #         T.RandomCrop(crop_size),
-    #         T.ToTensor(),
-    #         T.Normalize(mean=mean, std=std),
-    #     ])
-    #     self.transforms = T.Compose(trans)
-
-    # def __call__(self, img, target):
-    #     return self.transforms(img, target)
-
-
-# class SegmentationEval:
-    # def __init__(self, mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)):
-    #     self.transforms = T.Compose([
-    #         T.ToTensor(),
-    #         T.Normalize(mean=mean, std=std),
-    #     ])
-    # def __call__(self, img, target):
-    #     return self.transforms(img, target)
-
 
 def main(configs):
     if torch.cuda.is_available():
@@ -115,14 +84,14 @@ def main(configs):
     num_workers = min([os.cpu_count(), batch_size if batch_size > 1 else 0, 8])
     train_loader = torch.utils.data.DataLoader(train_dataset,
                                                batch_size=batch_size,
-                                               num_workers=num_workers,
+                                               num_workers=configs.num_workers,
                                                shuffle=True,
                                                pin_memory=True,
                                                collate_fn=train_dataset.collate_fn)
 
     val_loader = torch.utils.data.DataLoader(val_dataset,
                                              batch_size=1,
-                                             num_workers=num_workers,
+                                             num_workers=configs.num_workers,
                                              pin_memory=True,
                                              collate_fn=val_dataset.collate_fn)
 
@@ -138,7 +107,6 @@ def main(configs):
 
     scaler = torch.cuda.amp.GradScaler() if configs.amp == 1 else None
 
-    # 创建学习率更新策略，这里是每个step更新一次(不是每个epoch)
     lr_scheduler = create_lr_scheduler(optimizer, len(train_loader), configs.epochs, warmup=True)
 
     if configs.resume == 1:
