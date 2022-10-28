@@ -6,7 +6,7 @@ import torch
 
 from src import UNet
 from train_utils import train_one_epoch, evaluate, create_lr_scheduler
-from my_dataset import DriveDataset
+from drive_dataset import DriveDataset
 import transforms as T
 import yaml 
 from torchvision import transforms as F
