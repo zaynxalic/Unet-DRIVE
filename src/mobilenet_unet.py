@@ -39,7 +39,7 @@ class IntermediateLayerGetter(nn.ModuleDict):
         orig_return_layers = return_layers
         return_layers = {str(k): str(v) for k, v in return_layers.items()}
 
-        # 重新构建backbone，将没有使用到的模块全部删掉
+        # reconstruct backbone, delete unused modules
         layers = OrderedDict()
         for name, module in model.named_children():
             layers[name] = module

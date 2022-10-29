@@ -10,8 +10,7 @@ import matplotlib.pyplot as plt
     3) learning_rates
     4) global corrects
 """
-
-result = open('results20221022-213857.txt' ,'r')
+result = open('results20221029-221555unetpp_cbam.txt' ,'r')
 line = result.readline()
 epochs = []
 training_losses = []
@@ -89,4 +88,7 @@ print(global_corrects)
 print(IoU0s)
 print(IoU1s)
 print(mean_IoUs)
+# print(mean_Io)
+max_args = np.argmax(mean_IoUs)
+print(f"max mean IoU: {mean_IoU[max_args]}, max IoU0s: {IoU0s[max_args]}, max IoU1s: {IoU1s[max_args]}, global_corrects: {global_corrects[max_args]}")
 result.close()

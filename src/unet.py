@@ -2,11 +2,8 @@ from typing import Dict
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from .CBAM import *
 
-if __name__ == '__main__':
-    from CBAM import *
-else:
-    from .CBAM import *
 
 class DoubleConv(nn.Sequential):
     def __init__(self, in_channels, out_channels, mid_channels=None, dropout = 0.2):
@@ -15,12 +12,13 @@ class DoubleConv(nn.Sequential):
             
         super(DoubleConv, self).__init__(
             nn.Conv2d(in_channels, mid_channels, kernel_size=3, padding=1, bias=False),
+            nn.Dropout(p = dropout) if dropout else nn.Dropout(p = 0.),
             nn.BatchNorm2d(mid_channels),
             nn.ReLU(inplace=True),
             nn.Conv2d(mid_channels, out_channels, kernel_size=3, padding=1, bias=False),
+            nn.Dropout(p = dropout) if dropout else nn.Dropout(p = 0.),
             nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True),
-            nn.Dropout(p = dropout) if dropout else nn.Dropout(p = 0.),
         )
 
 
@@ -72,8 +70,7 @@ class UNet(nn.Module):
                  base_c: int = 64, 
                  is_cbam: bool = False,
                  is_aspp: bool = False,
-                 cbam_layers: list = None,
-                 dropout: float = 0.2):
+                 cbam_layers: list = None):
         """
         Args:
             in_channels (int, optional): The number of input channels. Defaults to 1.

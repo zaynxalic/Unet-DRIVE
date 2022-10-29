@@ -3,14 +3,15 @@ import time
 import datetime
 
 import torch
-
-from src import UNet
+from src import VGG16UNet
+from src import UNet, Unetpp
 from train_utils import train_one_epoch, evaluate, create_lr_scheduler
 from drive_dataset import DriveDataset
 import transforms as T
-import yaml 
+import yaml
 from torchvision import transforms as F
-
+from pytorch_ranger import Ranger
+        
 class EnvVarLoader(yaml.SafeLoader):
     pass
 
@@ -70,7 +71,7 @@ def main(configs):
     std = (0.127, 0.079, 0.043)
 
     # 用来保存训练以及验证过程中信息
-    results_file = "results{}.txt".format(datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
+    results_file = "results{}_".format(datetime.datetime.now().strftime("%Y%m%d-%H%M%S")  + configs.model_id + ".txt")
 
     train_dataset = DriveDataset(r"./",
                                  train=True,
@@ -92,17 +93,28 @@ def main(configs):
                                              num_workers=configs.num_workers,
                                              pin_memory=True,
                                              collate_fn=val_dataset.collate_fn)
-
-    model = UNet(in_channels=3, num_classes=num_classes, base_c=32).to(device)
+    model = None
+    if(configs.mode == "unet"):
+        model = UNet(in_channels=3, num_classes=num_classes, base_c=32).to(device)
+    elif(configs.mode == "unetpp"):
+        # model = Unetpp(in_channels=3, num_classes=num_classes, base_c=32).to(device)
+        model = Unetpp(in_channels=3, num_classes=num_classes).to(device)
+    elif(configs.mode == "unetpp_cbam"):
+        # model = Unetpp(in_channels=3, num_classes=num_classes, base_c=32).to(device)
+        model = Unetpp(in_channels=3, num_classes=num_classes, is_cbam= True).to(device)
+    elif(configs.mode == "vgg_unet"):
+        model = VGG16UNet(num_classes=num_classes).to(device)
+        
     total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f"The total number of trainable parameters are {total_params}")
     params_to_optimize = [p for p in model.parameters() if p.requires_grad]
 
-    optimizer = torch.optim.SGD(
-        params_to_optimize,
-        lr=configs.lr, momentum=configs.momentum, weight_decay=configs.weight_decay
-    )
+    # optimizer = torch.optim.SGD(
+    #     params_to_optimize,
+    #     lr=configs.lr, momentum=configs.momentum, weight_decay=configs.weight_decay
+    # )
 
+    optimizer = Ranger(model.parameters(), lr=configs.lr, weight_decay=configs.weight_decay)
     scaler = torch.cuda.amp.GradScaler() if configs.amp == 1 else None
 
     lr_scheduler = create_lr_scheduler(optimizer, len(train_loader), configs.epochs, warmup=True)
@@ -149,7 +161,7 @@ def main(configs):
             save_file["scaler"] = scaler.state_dict()
 
         if configs.save_best ==1:
-            torch.save(save_file, "save_weights/best_model.pth")
+            torch.save(save_file, "save_weights/best_model" + configs.model_id + ".pth")
         else:
             torch.save(save_file, "save_weights/model_{}.pth".format(epoch))
 
