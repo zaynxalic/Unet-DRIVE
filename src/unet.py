@@ -34,7 +34,7 @@ class Down(nn.Sequential):
     def __init__(self, in_channels, out_channels):
         super(Down, self).__init__(
             nn.MaxPool2d(2), # devide the channel in halves
-            DoubleConv(in_channels, out_channels, dropout = None) # afterwards, perform two convolutions
+            DoubleConv(in_channels, out_channels) # afterwards, perform two convolutions
         )
 
 
@@ -88,6 +88,7 @@ class UNet(nn.Module):
         self.num_classes = num_classes
         self.bilinear = bilinear
         self.is_cbam = is_cbam
+        # self.channel_lists = [for i in range()]
         # at first the network is in the double convolution
         self.in_conv = DoubleConv(in_channels, base_c, dropout = None) # in_channels = 3, base_c = 64
         if self.is_cbam:
