@@ -76,33 +76,22 @@ class SmoothedValue(object):
 class ConfusionMatrix(object):
     def __init__(self, num_classes):
         self.num_classes = num_classes
-        self.mat = None
+        if torch.cuda.is_available():
+            self.device = torch.device(f'cuda:{torch.cuda.device_count()-1}')
+        else:
+            self.device = torch.device('cpu')
+        self.mat = torch.zeros((self.num_classes, self.num_classes), dtype=torch.int64, device=self.device)
 
     def update(self, a, b):
         n = self.num_classes
-        if self.mat is None:
-            # 创建混淆矩阵
-            self.mat = torch.zeros((n, n), dtype=torch.int64, device=a.device)
         with torch.no_grad():
-            # 寻找GT中为目标的像素索引
             k = (a >= 0) & (a < n)
-            # 统计像素真实类别a[k]被预测成类别b[k]的个数(这里的做法很巧妙)
             inds = n * a[k].to(torch.int64) + b[k]
             self.mat += torch.bincount(inds, minlength=n**2).reshape(n, n)
 
     def reset(self):
         if self.mat is not None:
-            self.mat.zero_()
-
-    def compute(self):
-        h = self.mat.float()
-        # 计算全局预测准确率(混淆矩阵的对角线为预测正确的个数)
-        acc_global = torch.diag(h).sum() / h.sum()
-        # 计算每个类别的准确率
-        acc = torch.diag(h) / h.sum(1)
-        # 计算每个类别预测与真实目标的iou
-        iu = torch.diag(h) / (h.sum(1) + h.sum(0) - torch.diag(h))
-        return acc_global, acc, iu
+            self.mat.zero_() # fill all zeros in the original tensor
 
     def reduce_from_all_processes(self):
         if not torch.distributed.is_available():
@@ -113,7 +102,11 @@ class ConfusionMatrix(object):
         torch.distributed.all_reduce(self.mat)
 
     def __str__(self):
-        acc_global, acc, iu = self.compute()
+        h = self.mat.float()
+        # calculate two classes (TP + TN)/(TN + FP + FN + TP)
+        acc_global = torch.diag(h).sum() / h.sum()
+        acc = torch.diag(h) / h.sum(1)
+        iu = torch.diag(h) / (h.sum(1) + h.sum(0) - torch.diag(h))
         return (
             'global correct: {:.1f}\n'
             'average row correct: {}\n'
@@ -215,20 +208,16 @@ class MetricLogger(object):
             log_msg = self.delimiter.join([
                 header,
                 '[{0' + space_fmt + '}/{1}]',
-                'eta: {eta}',
                 '{meters}',
                 'time: {time}',
-                'data: {data}',
                 'max mem: {memory:.0f}'
             ])
         else:
             log_msg = self.delimiter.join([
                 header,
                 '[{0' + space_fmt + '}/{1}]',
-                'eta: {eta}',
                 '{meters}',
                 'time: {time}',
-                'data: {data}'
             ])
         MB = 1024.0 * 1024.0
         for obj in iterable:
@@ -242,19 +231,19 @@ class MetricLogger(object):
                     print(log_msg.format(
                         i, len(iterable), eta=eta_string,
                         meters=str(self),
-                        time=str(iter_time), data=str(data_time),
+                        time=str(iter_time),
                         memory=torch.cuda.max_memory_allocated() / MB))
                 else:
                     print(log_msg.format(
                         i, len(iterable), eta=eta_string,
                         meters=str(self),
-                        time=str(iter_time), data=str(data_time)))
+                        time=str(iter_time)))
             i += 1
             end = time.time()
         total_time = time.time() - start_time
         total_time_str = str(datetime.timedelta(seconds=int(total_time)))
         print('{} Total time: {}'.format(header, total_time_str))
-
+    
 
 def mkdir(path):
     try:

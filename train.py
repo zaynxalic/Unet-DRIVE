@@ -58,8 +58,7 @@ class Preprocessing:
 
 def main(configs):
     if torch.cuda.is_available():
-        if torch.cuda.device_count() > 1:
-            device = torch.device(f'cuda:{torch.cuda.device_count()-1}')
+        device = torch.device(f'cuda:{torch.cuda.device_count()-1}')
     else:
         device = torch.device('cpu')
     batch_size = configs.batch_size

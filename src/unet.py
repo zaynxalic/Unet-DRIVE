@@ -9,24 +9,32 @@ else:
     from .CBAM import *
 
 class DoubleConv(nn.Sequential):
-    def __init__(self, in_channels, out_channels, mid_channels=None):
+    def __init__(self, in_channels, out_channels, mid_channels=None, dropout = 0.2):
         if mid_channels is None:
             mid_channels = out_channels
+            
         super(DoubleConv, self).__init__(
             nn.Conv2d(in_channels, mid_channels, kernel_size=3, padding=1, bias=False),
             nn.BatchNorm2d(mid_channels),
             nn.ReLU(inplace=True),
             nn.Conv2d(mid_channels, out_channels, kernel_size=3, padding=1, bias=False),
             nn.BatchNorm2d(out_channels),
-            nn.ReLU(inplace=True)
+            nn.ReLU(inplace=True),
+            nn.Dropout(p = dropout) if dropout else nn.Dropout(p = 0.),
         )
 
 
+class OutConv(nn.Sequential):
+    def __init__(self, in_channels, num_classes):
+        super(OutConv, self).__init__(
+            nn.Conv2d(in_channels, num_classes, kernel_size=1)
+        )
+        
 class Down(nn.Sequential):
     def __init__(self, in_channels, out_channels):
         super(Down, self).__init__(
             nn.MaxPool2d(2), # devide the channel in halves
-            DoubleConv(in_channels, out_channels) # afterwards, perform two convolutions
+            DoubleConv(in_channels, out_channels, dropout = None) # afterwards, perform two convolutions
         )
 
 
@@ -62,14 +70,18 @@ class UNet(nn.Module):
                  num_classes: int = 2,
                  bilinear: bool = True,
                  base_c: int = 64, 
-                 is_cbam: bool = False):
+                 is_cbam: bool = False,
+                 is_aspp: bool = False,
+                 cbam_layers: list = None,
+                 dropout: float = 0.2):
         """
         Args:
             in_channels (int, optional): The number of input channels. Defaults to 1.
             num_classes (int, optional): The number of classes in this case we only have 2 classes for classification. Defaults to 2.
             bilinear (bool, optional): . Defaults to True.
             base_c (int, optional): _description_. Defaults to 64.
-            is_cbam (bool, optional): _description_. Defaults to False.
+            is_cbam (bool, optional): Whether involves cbam settings. Defaults to False.
+            cbam_layers (bool, optional): Whether involves  
         """
         super(UNet, self).__init__()
         self.in_channels = in_channels
@@ -77,8 +89,12 @@ class UNet(nn.Module):
         self.bilinear = bilinear
         self.is_cbam = is_cbam
         # at first the network is in the double convolution
-        self.in_conv = DoubleConv(in_channels, base_c) # in_channels = 3, base_c = 64
+        self.in_conv = DoubleConv(in_channels, base_c, dropout = None) # in_channels = 3, base_c = 64
+        if self.is_cbam:
+            self.cbam1 = CBAM(base_c)
         self.down1 = Down(base_c, base_c * 2)
+        if self.is_cbam:
+            self.cbam2 = CBAM(base_c)
         self.down2 = Down(base_c * 2, base_c * 4)
         self.down3 = Down(base_c * 4, base_c * 8)
         factor = 2 if bilinear else 1
@@ -88,15 +104,12 @@ class UNet(nn.Module):
         self.up2 = Up(base_c * 8, base_c * 4 // factor, bilinear)
         self.up3 = Up(base_c * 4, base_c * 2 // factor, bilinear)
         self.up4 = Up(base_c * 2, base_c, bilinear)
-        self.out_conv =  nn.Conv2d(base_c, num_classes)
-
-        if self.is_cbam:
-            self.cbam = CBAM(base_c, 16)
+        self.out_conv = OutConv(base_c, num_classes)
 
     def forward(self, x: torch.Tensor) -> Dict[str, torch.Tensor]:
         x1 = self.in_conv(x) # the first layer for 
         if self.is_cbam: 
-            x1 = self.cbam(x1)
+            x1 = self.cbam1(x1)
         x2 = self.down1(x1)
         x3 = self.down2(x2)
         x4 = self.down3(x3)
@@ -106,16 +119,15 @@ class UNet(nn.Module):
         x = self.up3(x, x2)
         x = self.up4(x, x1)
         logits = self.out_conv(x)
-
         return {"out": logits}
 
 
 if __name__ == '__main__':
     if torch.cuda.is_available():
-        if torch.cuda.device_count() > 1:
-            device =  torch.device(f'cuda:{torch.cuda.device_count()-1}')
+        device = torch.device(f'cuda:{torch.cuda.device_count()-1}')
     else:
         device = torch.device('cpu')
     model = UNet(in_channels=3, num_classes=2, base_c=32).to(device)
+    
     x = torch.randn((32,3,480,480)).to(device)
     model(x)

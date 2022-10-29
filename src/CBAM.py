@@ -103,3 +103,5 @@ if __name__ == '__main__':
     else:
         device = torch.device('cpu')
     model = CBAM(64, 16).to(device)
+    x = torch.randn(()).to(device)
+    model(x)
