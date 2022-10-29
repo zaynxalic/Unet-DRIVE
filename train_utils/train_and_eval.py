@@ -88,10 +88,6 @@ def create_lr_scheduler(optimizer,
         warmup_epochs = 0
 
     def f(x):
-        """
-        根据step数返回一个学习率倍率因子，
-        注意在训练开始之前，pytorch会提前调用一次lr_scheduler.step()方法
-        """
         if warmup is True and x <= (warmup_epochs * num_step):
             alpha = float(x) / (warmup_epochs * num_step)
             # warmup过程中lr倍率因子从warmup_factor -> 1

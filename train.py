@@ -59,7 +59,7 @@ class Preprocessing:
 def main(configs):
     if torch.cuda.is_available():
         if torch.cuda.device_count() > 1:
-            torch.device(f'cuda:{torch.cuda.device_count()-1}')
+            device = torch.device(f'cuda:{torch.cuda.device_count()-1}')
     else:
         device = torch.device('cpu')
     batch_size = configs.batch_size
@@ -81,7 +81,6 @@ def main(configs):
                                train=False,
                                transforms=Preprocessing(base_size = 565, crop_size = 480, mean=mean, std=std, train = False))
 
-    num_workers = min([os.cpu_count(), batch_size if batch_size > 1 else 0, 8])
     train_loader = torch.utils.data.DataLoader(train_dataset,
                                                batch_size=batch_size,
                                                num_workers=configs.num_workers,
