@@ -11,7 +11,7 @@ import transforms as T
 import yaml
 from torchvision import transforms as F
 from pytorch_ranger import Ranger
-        
+
 class EnvVarLoader(yaml.SafeLoader):
     pass
 

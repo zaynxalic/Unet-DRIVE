@@ -3,20 +3,20 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from .CBAM import *
-
+from .dropblock import DropBlock2D
 
 class DoubleConv(nn.Sequential):
-    def __init__(self, in_channels, out_channels, mid_channels=None, dropout = 0.2):
+    def __init__(self, in_channels, out_channels, mid_channels=None, dropout = 0.18):
         if mid_channels is None:
             mid_channels = out_channels
             
         super(DoubleConv, self).__init__(
             nn.Conv2d(in_channels, mid_channels, kernel_size=3, padding=1, bias=False),
-            nn.Dropout(p = dropout) if dropout else nn.Dropout(p = 0.),
+            DropBlock2D(drop_prob = dropout, block_size = 7) if dropout else DropBlock2D(0.,  None),
             nn.BatchNorm2d(mid_channels),
             nn.ReLU(inplace=True),
             nn.Conv2d(mid_channels, out_channels, kernel_size=3, padding=1, bias=False),
-            nn.Dropout(p = dropout) if dropout else nn.Dropout(p = 0.),
+            DropBlock2D(drop_prob = dropout, block_size = 7) if dropout else DropBlock2D(0., None),
             nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True),
         )
