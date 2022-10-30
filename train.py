@@ -97,6 +97,7 @@ def main(configs):
     is_aspp = configs.is_aspp
     is_sqex = configs.is_sqex
     lossfunc = configs.loss
+    
     if(configs.mode == "unet"):
         model = UNet(in_channels=3, num_classes=num_classes, base_c=32, is_cbam = is_cbam, is_aspp = is_aspp, is_sqex = is_sqex).to(device)
     elif(configs.mode == "unetpp"):

@@ -12,7 +12,7 @@ if torch.cuda.is_available():
 else:
     device = torch.device('cpu')
 class DoubleConv(nn.Module):
-    def __init__(self, in_channels, out_channels, mid_channels=None, dropout = 0.18, residual = False):
+    def __init__(self, in_channels, out_channels, mid_channels=None, dropout = 0.18, block_size = 7, residual = False):
         super(DoubleConv, self).__init__()
         self.residual = residual
         if mid_channels is None:
@@ -20,11 +20,11 @@ class DoubleConv(nn.Module):
             
         self.c1 = nn.Sequential(
             nn.Conv2d(in_channels, mid_channels, kernel_size=3, padding=1, bias=False),
-            DropBlock2D(drop_prob = dropout, block_size = 7) if dropout else DropBlock2D(0.,  None),
+            DropBlock2D(drop_prob = dropout, block_size = block_size) if dropout else DropBlock2D(0.,  None),
             nn.BatchNorm2d(mid_channels),
             nn.ReLU(inplace=True),
             nn.Conv2d(mid_channels, out_channels, kernel_size=3, padding=1, bias=False),
-            DropBlock2D(drop_prob = dropout, block_size = 7) if dropout else DropBlock2D(0., None),
+            DropBlock2D(drop_prob = dropout, block_size = block_size) if dropout else DropBlock2D(0., None),
             nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True),
         )
