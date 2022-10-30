@@ -48,7 +48,7 @@ class Unetpp(nn.Module):
             self.CBAM_5 = CBAM(128)
         
         if self.is_aspp:
-            self.aspp = ASPP(256, 256)
+            self.aspp = ASPP(512, 512)
             
         self.conv0_0 = DoubleConv(in_channels, 32, 32)
         self.conv1_0 = DoubleConv(32, 64, 64)
