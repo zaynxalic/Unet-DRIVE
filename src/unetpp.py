@@ -32,7 +32,7 @@ class Up(nn.Module):
     
 
 class Unetpp(nn.Module):
-    def __init__(self, in_channels=3, num_classes=2, is_cbam = False, is_aspp = False) -> None:
+    def __init__(self, in_channels=3, num_classes=2, base_c =32, is_cbam = False, is_aspp = False) -> None:
         super(Unetpp, self).__init__()
         self.pool = nn.MaxPool2d(2)
         self.up = Up()
@@ -40,36 +40,36 @@ class Unetpp(nn.Module):
         self.is_aspp = is_aspp
         
         if self.is_cbam:
-            self.CBAM_0 = CBAM(64)
-            self.CBAM_1 = CBAM(128)
+            self.CBAM_0 = CBAM(base_c *2)
+            self.CBAM_1 = CBAM(base_c *4)
             self.CBAM_2 = CBAM(96)
-            self.CBAM_3 = CBAM(256)
+            self.CBAM_3 = CBAM(base_c *8)
             self.CBAM_4 = CBAM(192)
-            self.CBAM_5 = CBAM(128)
+            self.CBAM_5 = CBAM(base_c *4)
         
         if self.is_aspp:
-            self.aspp = ASPP(512, 512)
+            self.aspp = ASPP(base_c *16, base_c *16)
             
-        self.conv0_0 = DoubleConv(in_channels, 32, 32)
-        self.conv1_0 = DoubleConv(32, 64, 64)
-        self.conv2_0 = DoubleConv(64, 128, 128)
-        self.conv3_0 = DoubleConv(128, 256, 256)
-        self.conv4_0 = DoubleConv(256, 512, 512)
+        self.conv0_0 = DoubleConv(in_channels, base_c, base_c)
+        self.conv1_0 = DoubleConv(base_c, base_c *2, base_c *2)
+        self.conv2_0 = DoubleConv(base_c *2, base_c *4, base_c *4)
+        self.conv3_0 = DoubleConv(base_c *4, base_c *8, base_c *8)
+        self.conv4_0 = DoubleConv(base_c *8, base_c *16, base_c *16)
 
-        self.conv0_1 = DoubleConv(32+64, 32, 32)
-        self.conv1_1 = DoubleConv(64+128, 64, 64)
-        self.conv2_1 = DoubleConv(128+256, 128, 128)
-        self.conv3_1 = DoubleConv(256+512, 256, 256)
+        self.conv0_1 = DoubleConv(base_c+base_c *2, base_c, base_c)
+        self.conv1_1 = DoubleConv(base_c *2+base_c *4, base_c *2, base_c *2)
+        self.conv2_1 = DoubleConv(base_c *4+base_c *8, base_c *4, base_c *4)
+        self.conv3_1 = DoubleConv(base_c *8+base_c *16, base_c *8, base_c *8)
 
-        self.conv0_2 = DoubleConv(32*2+64, 32, 32)
-        self.conv1_2 = DoubleConv(64*2+128, 64, 64)
-        self.conv2_2 = DoubleConv(128*2+256, 128, 128)
+        self.conv0_2 = DoubleConv(base_c*2+base_c *2, base_c, base_c)
+        self.conv1_2 = DoubleConv(base_c *2*2+base_c *4, base_c *2, base_c *2)
+        self.conv2_2 = DoubleConv(base_c *4*2+base_c *8, base_c *4, base_c *4)
 
-        self.conv0_3 = DoubleConv(32*3+64, 32, 32)
-        self.conv1_3 = DoubleConv(64*3+128, 64, 64)
+        self.conv0_3 = DoubleConv(base_c*3+base_c *2, base_c, base_c)
+        self.conv1_3 = DoubleConv(base_c *2*3+base_c *4, base_c *2, base_c *2)
 
-        self.conv0_4 = DoubleConv(32*4+64, 32, 32)
-        self.final = nn.Conv2d(32, num_classes, kernel_size=1)
+        self.conv0_4 = DoubleConv(base_c*4+base_c *2, base_c, base_c)
+        self.final = nn.Conv2d(base_c, num_classes, kernel_size=1)
 
     def forward(self, input):
         

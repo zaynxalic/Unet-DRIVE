@@ -94,7 +94,8 @@ class UNet(nn.Module):
         self.down1 = Down(base_c, base_c * 2)
         if self.is_cbam:
             self.cbam2 = CBAM(base_c)
-        
+            
+        self.is_aspp = is_aspp
         if self.is_aspp:
             self.aspp = ASPP(512,512)
         self.down2 = Down(base_c * 2, base_c * 4)

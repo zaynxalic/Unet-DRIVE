@@ -99,8 +99,7 @@ def main(configs):
     if(configs.mode == "unet"):
         model = UNet(in_channels=3, num_classes=num_classes, base_c=32, is_cbam = is_cbam, is_aspp = is_aspp).to(device)
     elif(configs.mode == "unetpp"):
-        # model = Unetpp(in_channels=3, num_classes=num_classes, base_c=32).to(device)
-        model = Unetpp(in_channels=3, num_classes=num_classes, is_cbam = is_cbam, is_aspp = is_aspp).to(device)
+        model = Unetpp(in_channels=3, num_classes=num_classes, base_c=32, is_cbam = is_cbam, is_aspp = is_aspp).to(device)
     elif(configs.mode == "vgg_unet"):
         model = VGG16UNet(num_classes=num_classes).to(device)
         
