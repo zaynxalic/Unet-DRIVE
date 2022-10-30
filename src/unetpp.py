@@ -38,25 +38,25 @@ class Unetpp(nn.Module):
         self.up = Up()
         self.is_cbam = is_cbam
         self.is_aspp = is_aspp
-        
+        self.is_sqex = is_sqex
         # if self.is_sqex:
             
         if self.is_cbam:
             self.CBAM_0 = CBAM(base_c *2)
             self.CBAM_1 = CBAM(base_c *4)
-            self.CBAM_2 = CBAM(96)
+            self.CBAM_2 = CBAM(base_c *3)
             self.CBAM_3 = CBAM(base_c *8)
-            self.CBAM_4 = CBAM(192)
+            self.CBAM_4 = CBAM(base_c *6)
             self.CBAM_5 = CBAM(base_c *4)
         
         if self.is_aspp:
             self.aspp = ASPP(base_c *16, base_c *16)
             
-        self.conv0_0 = DoubleConv(in_channels, base_c, base_c)
-        self.conv1_0 = DoubleConv(base_c, base_c *2, base_c *2)
-        self.conv2_0 = DoubleConv(base_c *2, base_c *4, base_c *4)
-        self.conv3_0 = DoubleConv(base_c *4, base_c *8, base_c *8)
-        self.conv4_0 = DoubleConv(base_c *8, base_c *16, base_c *16)
+        self.conv0_0 = DoubleConv(in_channels, base_c, base_c, residual = self.is_sqex )
+        self.conv1_0 = DoubleConv(base_c, base_c *2, base_c *2, residual = self.is_sqex)
+        self.conv2_0 = DoubleConv(base_c *2, base_c *4, base_c *4, residual = self.is_sqex)
+        self.conv3_0 = DoubleConv(base_c *4, base_c *8, base_c *8, residual = self.is_sqex)
+        self.conv4_0 = DoubleConv(base_c *8, base_c *16, base_c *16, residual = self.is_sqex)
 
         self.conv0_1 = DoubleConv(base_c+base_c *2, base_c, base_c)
         self.conv1_1 = DoubleConv(base_c *2+base_c *4, base_c *2, base_c *2)

@@ -33,12 +33,12 @@ class DoubleConv(nn.Module):
                 nn.Conv2d(in_channels, out_channels, kernel_size=1, padding=0),
                 nn.BatchNorm2d(out_channels),
             )
+            self.sqex = sqex(out_channels)
             
     def forward(self, inputs):
         if self.residual:
             x = inputs
             inputs = self.c1(inputs)
-            self.sqex = sqex(inputs.shape[1]).to(device)
             x = self.sqex(self.c2(x) + inputs)
             return x
         else:
@@ -119,7 +119,7 @@ class UNet(nn.Module):
             
         self.is_aspp = is_aspp
         if self.is_aspp:
-            self.aspp = ASPP(base_c * 4, base_c * 4)
+            self.aspp = ASPP(base_c * 8, base_c * 8)
         self.down2 = Down(base_c * 2, base_c * 4, residual = is_sqex)
         self.down3 = Down(base_c * 4, base_c * 8, residual = is_sqex)
         factor = 2 if bilinear else 1
@@ -133,14 +133,14 @@ class UNet(nn.Module):
 
     def forward(self, x: torch.Tensor) -> Dict[str, torch.Tensor]:
         x1 = self.in_conv(x) # the first layer for 
-        
         if self.is_cbam: 
             x1 = self.cbam1(x1)
         x2 = self.down1(x1)
         x3 = self.down2(x2)
         x4 = self.down3(x3)
         x5 = self.down4(x4)
-        x5 = self.aspp(x5)
+        if self.is_aspp:
+            x5 = self.aspp(x5)
         x = self.up1(x5, x4)
         x = self.up2(x, x3)
         x = self.up3(x, x2)
