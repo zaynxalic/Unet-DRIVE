@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-
+from monai.losses.dice import DiceCELoss, DiceFocalLoss
 
 def build_target(target: torch.Tensor, num_classes: int = 2, ignore_index: int = -100):
     """build target for dice coefficient"""

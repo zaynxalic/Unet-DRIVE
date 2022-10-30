@@ -5,6 +5,7 @@ import torch.nn.functional as F
 
 from .unet import DoubleConv
 from .CBAM import CBAM
+from .ASPP import ASPP
 # from unet import DoubleConv
 # from CBAM import CBAM
 
@@ -31,11 +32,13 @@ class Up(nn.Module):
     
 
 class Unetpp(nn.Module):
-    def __init__(self, in_channels=3, num_classes=2, is_cbam = False) -> None:
-        super().__init__()
+    def __init__(self, in_channels=3, num_classes=2, is_cbam = False, is_aspp = False) -> None:
+        super(Unetpp, self).__init__()
         self.pool = nn.MaxPool2d(2)
         self.up = Up()
         self.is_cbam = is_cbam
+        self.is_aspp = is_aspp
+        
         if self.is_cbam:
             self.CBAM_0 = CBAM(64)
             self.CBAM_1 = CBAM(128)
@@ -43,6 +46,9 @@ class Unetpp(nn.Module):
             self.CBAM_3 = CBAM(256)
             self.CBAM_4 = CBAM(192)
             self.CBAM_5 = CBAM(128)
+        
+        if self.is_aspp:
+            self.aspp = ASPP(256, 256)
             
         self.conv0_0 = DoubleConv(in_channels, 32, 32)
         self.conv1_0 = DoubleConv(32, 64, 64)
@@ -98,6 +104,8 @@ class Unetpp(nn.Module):
         x0_3 = self.conv0_3(self.up(x1_2, x0_012))
         
         x4_0 = self.conv4_0(self.pool(x3_0))
+        if self.is_aspp:
+            x4_0 = self.aspp(x4_0)
         x3_1 = self.conv3_1(self.up(x4_0, x3_0))
         
         x2_01 = torch.cat([x2_0, x2_1], 1)

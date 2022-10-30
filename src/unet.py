@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from .CBAM import *
 from .dropblock import DropBlock2D
-
+from .ASPP import ASPP
 class DoubleConv(nn.Sequential):
     def __init__(self, in_channels, out_channels, mid_channels=None, dropout = 0.18):
         if mid_channels is None:
@@ -70,7 +70,7 @@ class UNet(nn.Module):
                  base_c: int = 64, 
                  is_cbam: bool = False,
                  is_aspp: bool = False,
-                 cbam_layers: list = None):
+                 is_sqex: bool = False):
         """
         Args:
             in_channels (int, optional): The number of input channels. Defaults to 1.
@@ -90,9 +90,13 @@ class UNet(nn.Module):
         self.in_conv = DoubleConv(in_channels, base_c, dropout = None) # in_channels = 3, base_c = 64
         if self.is_cbam:
             self.cbam1 = CBAM(base_c)
+    
         self.down1 = Down(base_c, base_c * 2)
         if self.is_cbam:
             self.cbam2 = CBAM(base_c)
+        
+        if self.is_aspp:
+            self.aspp = ASPP(512,512)
         self.down2 = Down(base_c * 2, base_c * 4)
         self.down3 = Down(base_c * 4, base_c * 8)
         factor = 2 if bilinear else 1
@@ -106,12 +110,14 @@ class UNet(nn.Module):
 
     def forward(self, x: torch.Tensor) -> Dict[str, torch.Tensor]:
         x1 = self.in_conv(x) # the first layer for 
+        
         if self.is_cbam: 
             x1 = self.cbam1(x1)
         x2 = self.down1(x1)
         x3 = self.down2(x2)
         x4 = self.down3(x3)
         x5 = self.down4(x4)
+        x5 = self.aspp(x5)
         x = self.up1(x5, x4)
         x = self.up2(x, x3)
         x = self.up3(x, x2)

@@ -70,9 +70,8 @@ def main(configs):
     mean = (0.709, 0.381, 0.224)
     std = (0.127, 0.079, 0.043)
 
-    # 用来保存训练以及验证过程中信息
-    results_file = "results{}_".format(datetime.datetime.now().strftime("%Y%m%d-%H%M%S")  + configs.model_id + ".txt")
-
+    # save the weight
+    results_file = f"results{datetime.datetime.now().strftime('%Y%m%d-%H%M%S')}_{configs.model_id}.txt"
     train_dataset = DriveDataset(r"./",
                                  train=True,
                                  transforms=Preprocessing(base_size = 565, crop_size = 480, mean=mean, std=std, train = True))
@@ -94,14 +93,14 @@ def main(configs):
                                              pin_memory=True,
                                              collate_fn=val_dataset.collate_fn)
     model = None
+    is_cbam = configs.is_cbam 
+    is_aspp = configs.is_aspp
+    
     if(configs.mode == "unet"):
-        model = UNet(in_channels=3, num_classes=num_classes, base_c=32).to(device)
+        model = UNet(in_channels=3, num_classes=num_classes, base_c=32, is_cbam = is_cbam, is_aspp = is_aspp).to(device)
     elif(configs.mode == "unetpp"):
         # model = Unetpp(in_channels=3, num_classes=num_classes, base_c=32).to(device)
-        model = Unetpp(in_channels=3, num_classes=num_classes).to(device)
-    elif(configs.mode == "unetpp_cbam"):
-        # model = Unetpp(in_channels=3, num_classes=num_classes, base_c=32).to(device)
-        model = Unetpp(in_channels=3, num_classes=num_classes, is_cbam= True).to(device)
+        model = Unetpp(in_channels=3, num_classes=num_classes, is_cbam = is_cbam, is_aspp = is_aspp).to(device)
     elif(configs.mode == "vgg_unet"):
         model = VGG16UNet(num_classes=num_classes).to(device)
         

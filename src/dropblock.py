@@ -21,7 +21,6 @@ class DropBlock2D(nn.Module):
 
     def __init__(self, drop_prob, block_size):
         super(DropBlock2D, self).__init__()
-
         self.drop_prob = drop_prob
         self.block_size = block_size
 
