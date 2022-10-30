@@ -32,13 +32,15 @@ class Up(nn.Module):
     
 
 class Unetpp(nn.Module):
-    def __init__(self, in_channels=3, num_classes=2, base_c =32, is_cbam = False, is_aspp = False) -> None:
+    def __init__(self, in_channels=3, num_classes=2, base_c =32, is_cbam = False, is_aspp = False, is_sqex = False) -> None:
         super(Unetpp, self).__init__()
         self.pool = nn.MaxPool2d(2)
         self.up = Up()
         self.is_cbam = is_cbam
         self.is_aspp = is_aspp
         
+        # if self.is_sqex:
+            
         if self.is_cbam:
             self.CBAM_0 = CBAM(base_c *2)
             self.CBAM_1 = CBAM(base_c *4)

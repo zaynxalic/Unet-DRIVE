@@ -5,12 +5,20 @@ import torch.nn.functional as F
 from .CBAM import *
 from .dropblock import DropBlock2D
 from .ASPP import ASPP
-class DoubleConv(nn.Sequential):
-    def __init__(self, in_channels, out_channels, mid_channels=None, dropout = 0.18):
+from .sqex import squeeze_excite as sqex
+
+if torch.cuda.is_available():
+    device = torch.device(f'cuda:{torch.cuda.device_count()-1}')
+else:
+    device = torch.device('cpu')
+class DoubleConv(nn.Module):
+    def __init__(self, in_channels, out_channels, mid_channels=None, dropout = 0.18, residual = False):
+        super(DoubleConv, self).__init__()
+        self.residual = residual
         if mid_channels is None:
             mid_channels = out_channels
             
-        super(DoubleConv, self).__init__(
+        self.c1 = nn.Sequential(
             nn.Conv2d(in_channels, mid_channels, kernel_size=3, padding=1, bias=False),
             DropBlock2D(drop_prob = dropout, block_size = 7) if dropout else DropBlock2D(0.,  None),
             nn.BatchNorm2d(mid_channels),
@@ -20,8 +28,22 @@ class DoubleConv(nn.Sequential):
             nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True),
         )
-
-
+        if self.residual:
+            self.c2 = nn.Sequential(
+                nn.Conv2d(in_channels, out_channels, kernel_size=1, padding=0),
+                nn.BatchNorm2d(out_channels),
+            )
+            
+    def forward(self, inputs):
+        if self.residual:
+            x = inputs
+            inputs = self.c1(inputs)
+            self.sqex = sqex(inputs.shape[1]).to(device)
+            x = self.sqex(self.c2(x) + inputs)
+            return x
+        else:
+            return self.c1(inputs)
+        
 class OutConv(nn.Sequential):
     def __init__(self, in_channels, num_classes):
         super(OutConv, self).__init__(
@@ -29,10 +51,10 @@ class OutConv(nn.Sequential):
         )
         
 class Down(nn.Sequential):
-    def __init__(self, in_channels, out_channels):
+    def __init__(self, in_channels, out_channels, residual = False):
         super(Down, self).__init__(
             nn.MaxPool2d(2), # devide the channel in halves
-            DoubleConv(in_channels, out_channels) # afterwards, perform two convolutions
+            DoubleConv(in_channels, out_channels, residual = residual) # afterwards, perform two convolutions
         )
 
 
@@ -87,21 +109,21 @@ class UNet(nn.Module):
         self.is_cbam = is_cbam
         # self.channel_lists = [for i in range()]
         # at first the network is in the double convolution
-        self.in_conv = DoubleConv(in_channels, base_c, dropout = None) # in_channels = 3, base_c = 64
+        self.in_conv = DoubleConv(in_channels, base_c, dropout = None, residual = is_sqex ) # in_channels = 3, base_c = 64
         if self.is_cbam:
             self.cbam1 = CBAM(base_c)
     
-        self.down1 = Down(base_c, base_c * 2)
+        self.down1 = Down(base_c, base_c * 2, residual = is_sqex)
         if self.is_cbam:
             self.cbam2 = CBAM(base_c)
             
         self.is_aspp = is_aspp
         if self.is_aspp:
-            self.aspp = ASPP(512,512)
-        self.down2 = Down(base_c * 2, base_c * 4)
-        self.down3 = Down(base_c * 4, base_c * 8)
+            self.aspp = ASPP(base_c * 4, base_c * 4)
+        self.down2 = Down(base_c * 2, base_c * 4, residual = is_sqex)
+        self.down3 = Down(base_c * 4, base_c * 8, residual = is_sqex)
         factor = 2 if bilinear else 1
-        self.down4 = Down(base_c * 8, base_c * 16 // factor)
+        self.down4 = Down(base_c * 8, base_c * 16 // factor, residual = is_sqex)
         # [1024, 512, 1]
         self.up1 = Up(base_c * 16, base_c * 8 // factor, bilinear)
         self.up2 = Up(base_c * 8, base_c * 4 // factor, bilinear)
