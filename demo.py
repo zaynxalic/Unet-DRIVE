@@ -30,7 +30,7 @@ if __name__ == '__main__':
         device = torch.device(f'cuda:{torch.cuda.device_count()-1}')
     else:
         device = torch.device('cpu')
-        
+    
     model = UNet(in_channels=3, num_classes=2, base_c=32)
     model.load_state_dict(torch.load(weights_path, map_location='cpu')['model'])
     model.to(device)

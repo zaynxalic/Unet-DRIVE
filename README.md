@@ -1,53 +1,51 @@
 # U-Net(Convolutional Networks for Biomedical Sementic Segmentation)
 
-## 该项目主要参考以下开源仓库
+## Reference 
 * [https://github.com/milesial/Pytorch-UNet](https://github.com/milesial/Pytorch-UNet)
 * [https://github.com/pytorch/vision](https://github.com/pytorch/vision)
 
-## 环境配置：
+## Enviroument
 * Python3.6/3.7/3.8
 * Pytorch1.10
-* Ubuntu或Centos(Windows暂不支持多GPU训练)
-* 最好使用GPU训练
-* 详细环境配置见`requirements.txt`
+* Ubuntu Or CentOS(Windows do not support multi-GPU traning)
+* Training using GPU
+* Enviroument Config`requirements.txt`
 
-## 文件结构：
+## File Structure:
 ```
-  ├── src: 搭建U-Net模型代码
-  ├── train_utils: 训练、验证以及多GPU训练相关模块
-  ├── my_dataset.py: 自定义dataset用于读取DRIVE数据集(视网膜血管分割)
-  ├── train.py: 以单GPU为例进行训练
-  ├── train_multi_GPU.py: 针对使用多GPU的用户使用
-  ├── predict.py: 简易的预测脚本，使用训练好的权重进行预测测试
-  └── compute_mean_std.py: 统计数据集各通道的均值和标准差
+  ├── src: Construct U-net
+  ├── train_utils: Training, Validation and Multi-GPU training model
+  ├── my_dataset.py: Dataset for reading DRIVE dataset(Retinal vascular segmentation)
+  ├── train.py: Training in single GPU
+  ├── train_multi_GPU.py: Trining in multiple GPU
+  ├── predict.py: predict script, using trained weights test the result
+  └── compute_mean_std.py: statistic of mean and standard for each channel
 ```
 
-## DRIVE数据集下载地址：
-* 官网地址： [https://drive.grand-challenge.org/](https://drive.grand-challenge.org/)
-* 百度云链接： [https://pan.baidu.com/s/1Tjkrx2B9FgoJk0KviA-rDw](https://pan.baidu.com/s/1Tjkrx2B9FgoJk0KviA-rDw)  密码: 8no8
+## Download DRIVE datasets:
+* Official: [https://drive.grand-challenge.org/](https://drive.grand-challenge.org/)
 
 
-## 训练方法
-* 确保提前准备好数据集
-* 若要使用单GPU或者CPU训练，直接使用train.py训练脚本
-* 若要使用多GPU训练，使用`torchrun --nproc_per_node=8 train_multi_GPU.py`指令,`nproc_per_node`参数为使用GPU数量
-* 如果想指定使用哪些GPU设备可在指令前加上`CUDA_VISIBLE_DEVICES=0,3`(例如我只要使用设备中的第1块和第4块GPU设备)
+## training method
+* Make sure to prepare datasets
+* If training on single GPU or cpu, using traing.py script
+* If using multi-GPU using `torchrun --nproc_per_node=8 train_multi_GPU.py`commend,`nproc_per_node`parameter is the number of GPU
+* If want to specify which GPU want to use, add `CUDA_VISIBLE_DEVICES=0,3` to the front of commend(For example, only use first and fourth GPU in computer)
 * `CUDA_VISIBLE_DEVICES=0,3 torchrun --nproc_per_node=2 train_multi_GPU.py`
+```
+/home/ning/anaconda3/envs/ning/bin/python /home/ning/Desktop/Aaron/Unet-DRIVE/train.py
+```
 
-## 注意事项
-* 在使用训练脚本时，注意要将`--data-path`设置为自己存放`DRIVE`文件夹所在的**根目录**
-* 在使用预测脚本时，要将`weights_path`设置为你自己生成的权重路径。
-* 使用validation文件时，注意确保你的验证集或者测试集中必须包含每个类别的目标，并且使用时只需要修改`--num-classes`、`--data-path`和`--weights`即可，其他代码尽量不要改动
+## Visualization of Result
+* 
 
-## 使用U-Net在DRIVE数据集上训练得到的权重(仅供测试使用)
-- 链接: https://pan.baidu.com/s/1BOqkEpgt1XRqziyc941Hcw  密码: p50a
+## Notification
+* When running training script, need to specify `--data-path`to the file where your root folder of your `DRIVE` file**Root Folder**
+* When running prediction, need to specify `weights_path` to your own generated weights folder
+* When running validation files, make sure your testing and validation datasets must contain each target classes you want，and only need to modify `--num-classes`、`--data-path` and `--weights`, Try do not modify any other codes.
 
-## 如果对U-Net网络不了解的可参考我的bilibili
-* [https://www.bilibili.com/video/BV1Vq4y127fB/](https://www.bilibili.com/video/BV1Vq4y127fB/)
+## pre-trained weights using Unet running on DRIVE datasets(Only for testing)
+- link: https://pan.baidu.com/s/1BOqkEpgt1XRqziyc941Hcw  password: p50a
 
-
-## 进一步了解该项目，以及对U-Net代码的分析可参考我的bilibili
-* [https://b23.tv/PCJJmqN](https://b23.tv/PCJJmqN)
-
-## 本项目U-Net默认使用双线性插值做为上采样，结构图如下
+## Our Unet use Bilinear interpolation upsampling by default.
 ![u-net](unet.png)

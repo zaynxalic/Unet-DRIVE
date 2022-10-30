@@ -89,19 +89,30 @@ class ConfusionMatrix(object):
         torch.distributed.all_reduce(self.mat)
 
     def __str__(self):
+        #########
+        ##TP FP##
+        ##FN TN##
+        #########
         h = self.mat.float()
         # calculate two classes (TP + TN)/(TN + FP + FN + TP)
         acc_global = torch.diag(h).sum() / h.sum()
         acc = torch.diag(h) / h.sum(1)
         iu = torch.diag(h) / (h.sum(1) + h.sum(0) - torch.diag(h))
+        TP, FP, FN, TN = h[0,0], h[0,1], h[1,0], h[1,1]
+        f1 = (2*TP)/(2*TP + FP + FN )
+        mcc =  (TP * TN - FP * FN)/ torch.sqrt((TP + FP)*(TP + FN) * (TN + FP)*(TN + FN))
         return (
             'global correct: {:.1f}\n'
             'average row correct: {}\n'
             'IoU: {}\n'
+            'f1: {}\n'
+            'mcc : {}\n'
             'mean IoU: {:.1f}').format(
                 acc_global.item() * 100,
                 ['{:.1f}'.format(i) for i in (acc * 100).tolist()],
                 ['{:.1f}'.format(i) for i in (iu * 100).tolist()],
+                f1.item() * 100,
+                mcc.item() * 100,
                 iu.mean().item() * 100)
 
 

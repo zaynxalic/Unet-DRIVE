@@ -12,7 +12,7 @@ if torch.cuda.is_available():
 else:
     device = torch.device('cpu')
 class DoubleConv(nn.Module):
-    def __init__(self, in_channels, out_channels, mid_channels=None, dropout = 0.18, block_size = 7, residual = False):
+    def __init__(self, in_channels, out_channels, mid_channels=None, dropout = 0.0, block_size = 7, residual = False):
         super(DoubleConv, self).__init__()
         self.residual = residual
         if mid_channels is None:

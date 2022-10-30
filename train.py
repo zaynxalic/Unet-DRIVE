@@ -99,12 +99,16 @@ def main(configs):
     lossfunc = configs.loss
     
     if(configs.mode == "unet"):
+        # 32 16 8
         model = UNet(in_channels=3, num_classes=num_classes, base_c=32, is_cbam = is_cbam, is_aspp = is_aspp, is_sqex = is_sqex).to(device)
     elif(configs.mode == "unetpp"):
-        model = Unetpp(in_channels=3, num_classes=num_classes, base_c=32, is_cbam = is_cbam, is_aspp = is_aspp, is_sqex = is_sqex).to(device)
+        model = Unetpp(in_channels=3, num_classes=num_classes, base_c=16, is_cbam = is_cbam, is_aspp = is_aspp, is_sqex = is_sqex).to(device)
     elif(configs.mode == "vgg_unet"):
         model = VGG16UNet(num_classes=num_classes).to(device)
-        
+    elif(configs.mode == "vgg_unet"):
+        model = VGG16UNet(num_classes=num_classes).to(device)
+    else:
+        raise NotImplementedError
     total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f"The total number of trainable parameters are {total_params}")
     params_to_optimize = [p for p in model.parameters() if p.requires_grad]
@@ -160,7 +164,7 @@ def main(configs):
         if configs.amp == 1:
             save_file["scaler"] = scaler.state_dict()
 
-        if configs.save_best ==1:
+        if configs.save_best == 1:
             torch.save(save_file, "save_weights/best_model" + configs.model_id + ".pth")
         else:
             torch.save(save_file, "save_weights/model_{}.pth".format(epoch))
