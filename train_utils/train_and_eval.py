@@ -4,14 +4,14 @@ import train_utils.distributed_utils as utils
 from .dice_coefficient_loss import dice_loss, build_target
 
 
-def criterion(inputs, target, loss_weight=None, num_classes: int = 2, dice: bool = True, ignore_index: int = -100):
+def criterion(lossfunc: str, inputs, target, loss_weight=None, num_classes: int = 2, dice: bool = True, ignore_index: int = -100):
     losses = {}
     for name, x in inputs.items():
         # 忽略target中值为255的像素，255的像素是目标边缘或者padding填充
         loss = nn.functional.cross_entropy(x, target, ignore_index=ignore_index, weight=loss_weight)
         if dice is True:
             dice_target = build_target(target, num_classes, ignore_index)
-            loss += dice_loss(x, dice_target, multiclass=True, ignore_index=ignore_index)
+            loss += dice_loss(lossfunc, x, dice_target, multiclass=True, ignore_index=ignore_index)
         losses[name] = loss
 
     if len(losses) == 1:
@@ -41,7 +41,7 @@ def evaluate(model, data_loader, device, num_classes):
     return confmat, dice.value.item()
 
 
-def train_one_epoch(model, optimizer, data_loader, device, epoch, num_classes,
+def train_one_epoch(lossfunc, model, optimizer, data_loader, device, epoch, num_classes,
                     lr_scheduler, print_freq=10, scaler=None):
     model.train()
     metric_logger = utils.MetricLogger(delimiter="  ")
@@ -58,7 +58,7 @@ def train_one_epoch(model, optimizer, data_loader, device, epoch, num_classes,
         image, target = image.to(device), target.to(device)
         with torch.cuda.amp.autocast(enabled=scaler is not None):
             output = model(image)
-            loss = criterion(output, target, loss_weight, num_classes=num_classes, ignore_index=255)
+            loss = criterion(lossfunc, output, target, loss_weight, num_classes=num_classes, ignore_index=255)
 
         optimizer.zero_grad()
         if scaler is not None:

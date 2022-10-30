@@ -1,6 +1,7 @@
+from http.client import UnimplementedFileMode
 import torch
 import torch.nn as nn
-from monai.losses.dice import DiceCELoss, DiceFocalLoss
+from monai.losses.dice import DiceCELoss, DiceFocalLoss, DiceLoss
 
 def build_target(target: torch.Tensor, num_classes: int = 2, ignore_index: int = -100):
     """build target for dice coefficient"""
@@ -49,8 +50,20 @@ def multiclass_dice_coeff(x: torch.Tensor, target: torch.Tensor, ignore_index: i
     return dice / x.shape[1]
 
 
-def dice_loss(x: torch.Tensor, target: torch.Tensor, multiclass: bool = False, ignore_index: int = -100):
+def dice_loss(loss: str, x: torch.Tensor, target: torch.Tensor, multiclass: bool = False, ignore_index: int = -100):
+    if loss == 'diceloss':
     # Dice loss (objective to minimize) between 0 and 1
-    x = nn.functional.softmax(x, dim=1)
-    fn = multiclass_dice_coeff if multiclass else dice_coeff
-    return 1 - fn(x, target, ignore_index=ignore_index)
+        # x = nn.functional.softmax(x, dim=1)
+        # fn = multiclass_dice_coeff if multiclass else dice_coeff
+        # return 1 - fn(x, target, ignore_index=ignore_index)
+        lossfunc = DiceLoss(smooth_nr=1e-6, smooth_dr=1e-6, softmax=True)
+        return lossfunc(x,target)
+    elif loss == 'dicefocalloss':
+        lossfunc = DiceFocalLoss(smooth_nr=1e-6, smooth_dr=1e-6, softmax=True)
+        return lossfunc(x,target)
+    elif loss == 'diceceloss':
+        lossfunc = DiceCELoss(smooth_nr=1e-6, smooth_dr=1e-6, softmax=True)
+        return lossfunc(x,target)
+    else:
+        raise NotImplementedError
+    

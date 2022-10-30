@@ -96,6 +96,7 @@ def main(configs):
     is_cbam = configs.is_cbam 
     is_aspp = configs.is_aspp
     is_sqex = configs.is_sqex
+    lossfunc = configs.loss
     if(configs.mode == "unet"):
         model = UNet(in_channels=3, num_classes=num_classes, base_c=32, is_cbam = is_cbam, is_aspp = is_aspp, is_sqex = is_sqex).to(device)
     elif(configs.mode == "unetpp"):
@@ -129,7 +130,7 @@ def main(configs):
     best_dice = 0.
     start_time = time.time()
     for epoch in range(configs.start_epoch, configs.epochs):
-        mean_loss, lr = train_one_epoch(model, optimizer, train_loader, device, epoch, num_classes,
+        mean_loss, lr = train_one_epoch(lossfunc, model, optimizer, train_loader, device, epoch, num_classes,
                                         lr_scheduler=lr_scheduler, print_freq=configs.print_freq, scaler=scaler)
 
         confmat, dice = evaluate(model, val_loader, device=device, num_classes=num_classes)
