@@ -5,14 +5,22 @@ import torch.nn.functional as F
 from .CBAM import *
 from .dropblock import DropBlock2D
 from .ASPP import ASPP
-from .sqex import squeeze_excite as sqex
+from .sqex import squeeze_excite as sqex, ResBlockSqEx as res_sqex
 
 if torch.cuda.is_available():
     device = torch.device(f'cuda:{torch.cuda.device_count()-1}')
 else:
     device = torch.device('cpu')
+
+
 class DoubleConv(nn.Module):
-    def __init__(self, in_channels, out_channels, mid_channels=None, dropout = 0.0, block_size = 7, residual = False):
+    def getDrop():
+        if configs.dropblock:
+            return DropBlock2D(drop_prob=0.1, block_size=7)
+        else:
+            return nn.Dropout(p = dropout) if dropout else nn.Dropout(p = 0.)
+    
+    def __init__(self, in_channels, out_channels, mid_channels=None, dropout = 0.2, block_size = 7, residual = False):
         super(DoubleConv, self).__init__()
         self.residual = residual
         if mid_channels is None:
@@ -21,10 +29,12 @@ class DoubleConv(nn.Module):
         self.c1 = nn.Sequential(
             nn.Conv2d(in_channels, mid_channels, kernel_size=3, padding=1, bias=False),
             DropBlock2D(drop_prob = dropout, block_size = block_size) if dropout else DropBlock2D(0.,  None),
+            # nn.Dropout(p = dropout) if dropout else nn.Dropout(p = 0.),
             nn.BatchNorm2d(mid_channels),
             nn.ReLU(inplace=True),
             nn.Conv2d(mid_channels, out_channels, kernel_size=3, padding=1, bias=False),
             DropBlock2D(drop_prob = dropout, block_size = block_size) if dropout else DropBlock2D(0., None),
+            # nn.Dropout(p = dropout) if dropout else nn.Dropout(p = 0.),
             nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True),
         )
@@ -33,13 +43,13 @@ class DoubleConv(nn.Module):
                 nn.Conv2d(in_channels, out_channels, kernel_size=1, padding=0),
                 nn.BatchNorm2d(out_channels),
             )
-            self.sqex = sqex(out_channels)
+            self.res_sqex = res_sqex(out_channels)
             
     def forward(self, inputs):
         if self.residual:
             x = inputs
             inputs = self.c1(inputs)
-            x = self.sqex(self.c2(x) + inputs)
+            x = self.res_sqex(self.c2(x) + inputs)
             return x
         else:
             return self.c1(inputs)
@@ -109,21 +119,20 @@ class UNet(nn.Module):
         self.is_cbam = is_cbam
         # self.channel_lists = [for i in range()]
         # at first the network is in the double convolution
-        self.in_conv = DoubleConv(in_channels, base_c, dropout = None, residual = is_sqex ) # in_channels = 3, base_c = 64
+        self.in_conv = DoubleConv(in_channels, base_c, dropout = None, residual = is_sqex or is_cbam ) # in_channels = 3, base_c = 64
         if self.is_cbam:
-            self.cbam1 = CBAM(base_c)
-    
-        self.down1 = Down(base_c, base_c * 2, residual = is_sqex)
-        if self.is_cbam:
-            self.cbam2 = CBAM(base_c)
+            self.cbam1 = ResCBAM(base_c * 2)
+            self.cbam2 = ResCBAM(base_c * 4)
+            self.cbam3 =  ResCBAM(base_c * 8)            
+        self.down1 = Down(base_c, base_c * 2, residual = is_sqex or is_cbam)
             
         self.is_aspp = is_aspp
         if self.is_aspp:
             self.aspp = ASPP(base_c * 8, base_c * 8)
-        self.down2 = Down(base_c * 2, base_c * 4, residual = is_sqex)
-        self.down3 = Down(base_c * 4, base_c * 8, residual = is_sqex)
+        self.down2 = Down(base_c * 2, base_c * 4, residual = is_sqex or is_cbam)
+        self.down3 = Down(base_c * 4, base_c * 8, residual = is_sqex or is_cbam)
         factor = 2 if bilinear else 1
-        self.down4 = Down(base_c * 8, base_c * 16 // factor, residual = is_sqex)
+        self.down4 = Down(base_c * 8, base_c * 16 // factor, residual = is_sqex or is_cbam)
         # [1024, 512, 1]
         self.up1 = Up(base_c * 16, base_c * 8 // factor, bilinear)
         self.up2 = Up(base_c * 8, base_c * 4 // factor, bilinear)
@@ -133,17 +142,21 @@ class UNet(nn.Module):
 
     def forward(self, x: torch.Tensor) -> Dict[str, torch.Tensor]:
         x1 = self.in_conv(x) # the first layer for 
-        if self.is_cbam: 
-            x1 = self.cbam1(x1)
         x2 = self.down1(x1)
+        if self.is_cbam:
+            x2_ = self.cbam1(x2)
         x3 = self.down2(x2)
+        if self.is_cbam:
+            x3_ = self.cbam2(x3)
         x4 = self.down3(x3)
+        if self.is_cbam:
+            x4_ = self.cbam3(x4)
         x5 = self.down4(x4)
         if self.is_aspp:
             x5 = self.aspp(x5)
-        x = self.up1(x5, x4)
-        x = self.up2(x, x3)
-        x = self.up3(x, x2)
+        x = self.up1(x5, x4_)
+        x = self.up2(x, x3_)
+        x = self.up3(x, x2_)
         x = self.up4(x, x1)
         logits = self.out_conv(x)
         return {"out": logits}

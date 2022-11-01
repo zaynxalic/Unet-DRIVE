@@ -71,7 +71,7 @@ def main(configs):
     std = (0.127, 0.079, 0.043)
 
     # save the weight
-    results_file = f"results{datetime.datetime.now().strftime('%Y%m%d-%H%M%S')}_{configs.model_id}.txt"
+    results_file = f"{datetime.datetime.now().strftime('%m%d%H%M%S')}_{configs.model_id}.txt"
     train_dataset = DriveDataset(r"./",
                                  train=True,
                                  transforms=Preprocessing(base_size = 565, crop_size = 480, mean=mean, std=std, train = True))
@@ -97,14 +97,14 @@ def main(configs):
     is_aspp = configs.is_aspp
     is_sqex = configs.is_sqex
     lossfunc = configs.loss
-    
+    UNet_base_c = 8
+    Unetpp_base_c = 32
+    print(f'Parameters loss function: {lossfunc}, is_cbam: {is_cbam}, is_aspp: {is_aspp}, is_sqex: {is_sqex}, UNet_base_c: {UNet_base_c}, Unetpp_base_c: {Unetpp_base_c}')
     if(configs.mode == "unet"):
         # 32 16 8
-        model = UNet(in_channels=3, num_classes=num_classes, base_c=32, is_cbam = is_cbam, is_aspp = is_aspp, is_sqex = is_sqex).to(device)
+        model = UNet(in_channels=3, num_classes=num_classes, base_c=UNet_base_c, is_cbam = is_cbam, is_aspp = is_aspp, is_sqex = is_sqex).to(device)
     elif(configs.mode == "unetpp"):
-        model = Unetpp(in_channels=3, num_classes=num_classes, base_c=16, is_cbam = is_cbam, is_aspp = is_aspp, is_sqex = is_sqex).to(device)
-    elif(configs.mode == "vgg_unet"):
-        model = VGG16UNet(num_classes=num_classes).to(device)
+        model = Unetpp(in_channels=3, num_classes=num_classes, base_c=Unetpp_base_c, is_cbam = is_cbam, is_aspp = is_aspp, is_sqex = is_sqex).to(device)
     elif(configs.mode == "vgg_unet"):
         model = VGG16UNet(num_classes=num_classes).to(device)
     else:

@@ -29,7 +29,7 @@
 ## training method
 * Make sure to prepare datasets
 * If training on single GPU or cpu, using traing.py script
-* If using multi-GPU using `torchrun --nproc_per_node=8 train_multi_GPU.py`commend,`nproc_per_node`parameter is the number of GPU
+* If using multi-GPU, using `torchrun --nproc_per_node=8 train_multi_GPU.py` commend, `nproc_per_node` parameter is the number of GPU
 * If want to specify which GPU want to use, add `CUDA_VISIBLE_DEVICES=0,3` to the front of commend(For example, only use first and fourth GPU in computer)
 * `CUDA_VISIBLE_DEVICES=0,3 torchrun --nproc_per_node=2 train_multi_GPU.py`
 ```

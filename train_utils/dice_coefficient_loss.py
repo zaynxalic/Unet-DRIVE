@@ -53,13 +53,11 @@ def multiclass_dice_coeff(x: torch.Tensor, target: torch.Tensor, ignore_index: i
 def dice_loss(loss: str, x: torch.Tensor, target: torch.Tensor, multiclass: bool = False, ignore_index: int = -100):
     if loss == 'diceloss':
     # Dice loss (objective to minimize) between 0 and 1
-        # x = nn.functional.softmax(x, dim=1)
-        # fn = multiclass_dice_coeff if multiclass else dice_coeff
-        # return 1 - fn(x, target, ignore_index=ignore_index)
-        lossfunc = DiceLoss(smooth_nr=1e-6, smooth_dr=1e-6, softmax=True)
-        return lossfunc(x,target)
+        x = nn.functional.softmax(x, dim=1)
+        fn = multiclass_dice_coeff if multiclass else dice_coeff
+        return 1 - fn(x, target, ignore_index=ignore_index)
     elif loss == 'dicefocalloss':
-        lossfunc = DiceFocalLoss(smooth_nr=1e-6, smooth_dr=1e-6, softmax=True)
+        lossfunc = DiceFocalLoss(lambda_dice = 0.5, lambda_focal = 2, smooth_nr=1e-6, smooth_dr=1e-6, softmax=True)
         return lossfunc(x,target)
     elif loss == 'diceceloss':
         lossfunc = DiceCELoss(smooth_nr=1e-6, smooth_dr=1e-6, softmax=True)
