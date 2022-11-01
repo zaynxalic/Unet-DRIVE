@@ -154,9 +154,15 @@ class UNet(nn.Module):
         x5 = self.down4(x4)
         if self.is_aspp:
             x5 = self.aspp(x5)
-        x = self.up1(x5, x4_)
-        x = self.up2(x, x3_)
-        x = self.up3(x, x2_)
+
+        if self.is_cbam:
+            x = self.up1(x5, x4_)
+            x = self.up2(x, x3_)
+            x = self.up3(x, x2_)
+        else:
+            x = self.up1(x5, x4)
+            x = self.up2(x, x3)
+            x = self.up3(x, x2)
         x = self.up4(x, x1)
         logits = self.out_conv(x)
         return {"out": logits}

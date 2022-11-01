@@ -129,10 +129,3 @@ class ResCBAM(nn.Module):
 
         return y
      
-if __name__ == '__main__':
-    if torch.cuda.is_available():
-        if torch.cuda.device_count() > 1:
-            device =  torch.device(f'cuda:{torch.cuda.device_count()-1}')
-    else:
-        device = torch.device('cpu')
-    model = CBAM(64, 16).to(device)

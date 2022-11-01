@@ -3,7 +3,6 @@ import time
 import datetime
 
 import torch
-from src import VGG16UNet
 from src import UNet, Unetpp
 from train_utils import train_one_epoch, evaluate, create_lr_scheduler
 from drive_dataset import DriveDataset
@@ -105,8 +104,6 @@ def main(configs):
         model = UNet(in_channels=3, num_classes=num_classes, base_c=UNet_base_c, is_cbam = is_cbam, is_aspp = is_aspp, is_sqex = is_sqex).to(device)
     elif(configs.mode == "unetpp"):
         model = Unetpp(in_channels=3, num_classes=num_classes, base_c=Unetpp_base_c, is_cbam = is_cbam, is_aspp = is_aspp, is_sqex = is_sqex).to(device)
-    elif(configs.mode == "vgg_unet"):
-        model = VGG16UNet(num_classes=num_classes).to(device)
     else:
         raise NotImplementedError
     total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
