@@ -96,36 +96,21 @@ class CBAM(nn.Module):
         return x_out
 
 class ResCBAM(nn.Module):
-
     def __init__(self, n_features):
         super(ResCBAM, self).__init__()
-
-        # convolutions
-
-        self.norm1 = nn.BatchNorm2d(n_features)
-        self.relu1 = nn.ReLU(inplace=True)
-        self.conv1 = nn.Conv2d(n_features, n_features, kernel_size=3, stride=1, padding=1, bias=False)
-
-        self.norm2 = nn.BatchNorm2d(n_features)
-        self.relu2 = nn.ReLU(inplace=True)
-        self.conv2 = nn.Conv2d(n_features, n_features, kernel_size=3, stride=1, padding=1, bias=False)
-
-        self.cbam  = CBAM(n_features)
+        self.resblock = []
+        for i in range(2):
+            self.resblock.extend([
+            nn.BatchNorm2d(n_features), 
+            nn.ReLU(inplace=True),
+            nn.Conv2d(n_features, n_features, kernel_size=3, stride=1, padding=1, bias=False)
+        ])
+        self.res = nn.Sequential(*self.resblock)
+        # squeeze and excitation
+        self.sqex = CBAM(n_features)
 
     def forward(self, x):
-        
-        # convolutions
-
-        y = self.conv1(self.relu1(self.norm1(x)))
-        y = self.conv2(self.relu2(self.norm2(y)))
-
-        # squeeze and excitation
-
-        y = self.cbam(y)
-
-        # add residuals
-        
+        y = self.res(x)
+        y = self.sqex(y)
         y = torch.add(x, y)
-
         return y
-     

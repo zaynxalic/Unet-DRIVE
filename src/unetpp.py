@@ -51,7 +51,8 @@ class Unetpp(nn.Module):
         
         if self.is_aspp:
             print("Using ASPP")
-            self.aspp = ASPP(base_c *16, base_c *16)
+            self.aspp1 = ASPP(base_c *16, base_c *16)
+            self.aspp2 = ASPP(base_c, base_c)
             
         self.conv0_0 = DoubleConv(in_channels, base_c, base_c, residual = self.is_sqex or self.is_cbam)
         self.conv1_0 = DoubleConv(base_c, base_c *2, base_c *2, residual = self.is_sqex or self.is_cbam)
@@ -108,7 +109,7 @@ class Unetpp(nn.Module):
         
         x4_0 = self.conv4_0(self.pool(x3_0))
         if self.is_aspp:
-            x4_0 = self.aspp(x4_0)
+            x4_0 = self.aspp1(x4_0)
         x3_1 = self.conv3_1(self.up(x4_0, x3_0))
         
         x2_01 = torch.cat([x2_0, x2_1], 1)
@@ -125,7 +126,8 @@ class Unetpp(nn.Module):
         if self.is_cbam:
             x0_0123 = self.CBAM_5(x0_0123)
         x0_4 = self.conv0_4(self.up(x1_3,x0_0123 ))
-
+        if self.is_aspp:
+            x0_4 = self.aspp2(x0_4)
         output = self.final(x0_4)
         return {"out": output}
     

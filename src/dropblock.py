@@ -4,32 +4,12 @@ from torch import nn
 
 
 class DropBlock2D(nn.Module):
-    r"""Randomly zeroes 2D spatial blocks of the input tensor.
-    As described in the paper
-    `DropBlock: A regularization method for convolutional networks`_ ,
-    dropping whole blocks of feature map allows to remove semantic
-    information as compared to regular dropout.
-    Args:
-        drop_prob (float): probability of an element to be dropped.
-        block_size (int): size of the block to drop
-    Shape:
-        - Input: `(N, C, H, W)`
-        - Output: `(N, C, H, W)`
-    .. _DropBlock: A regularization method for convolutional networks:
-       https://arxiv.org/abs/1810.12890
-    """
-
     def __init__(self, drop_prob, block_size):
         super(DropBlock2D, self).__init__()
         self.drop_prob = drop_prob
         self.block_size = block_size
 
     def forward(self, x):
-        # shape: (bsize, channels, height, width)
-
-        assert x.dim() == 4, \
-            "Expected input with 4 dimensions (bsize, channels, height, width)"
-
         if not self.training or self.drop_prob == 0.:
             return x
         else:

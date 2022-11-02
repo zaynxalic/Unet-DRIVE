@@ -14,13 +14,13 @@ else:
 
 
 class DoubleConv(nn.Module):
-    def getDrop():
-        if configs.dropblock:
-            return DropBlock2D(drop_prob=0.1, block_size=7)
-        else:
-            return nn.Dropout(p = dropout) if dropout else nn.Dropout(p = 0.)
+    # def getDrop():
+    #     if configs.dropblock:
+    #         return DropBlock2D(drop_prob=0.1, block_size=7)
+    #     else:
+    #         return nn.Dropout(p = dropout) if dropout else nn.Dropout(p = 0.)
     
-    def __init__(self, in_channels, out_channels, mid_channels=None, dropout = 0.2, block_size = 7, residual = False):
+    def __init__(self, in_channels, out_channels, mid_channels=None, dropout = 0.15, block_size = 6, residual = False):
         super(DoubleConv, self).__init__()
         self.residual = residual
         if mid_channels is None:
@@ -128,7 +128,8 @@ class UNet(nn.Module):
             
         self.is_aspp = is_aspp
         if self.is_aspp:
-            self.aspp = ASPP(base_c * 8, base_c * 8)
+            self.aspp1 = ASPP(base_c * 8, base_c * 8)
+            self.aspp2 = ASPP(base_c, base_c)
         self.down2 = Down(base_c * 2, base_c * 4, residual = is_sqex or is_cbam)
         self.down3 = Down(base_c * 4, base_c * 8, residual = is_sqex or is_cbam)
         factor = 2 if bilinear else 1
@@ -153,7 +154,7 @@ class UNet(nn.Module):
             x4_ = self.cbam3(x4)
         x5 = self.down4(x4)
         if self.is_aspp:
-            x5 = self.aspp(x5)
+            x5 = self.aspp1(x5)
 
         if self.is_cbam:
             x = self.up1(x5, x4_)
@@ -164,6 +165,8 @@ class UNet(nn.Module):
             x = self.up2(x, x3)
             x = self.up3(x, x2)
         x = self.up4(x, x1)
+        if self.is_aspp:
+            x = self.aspp2(x)
         logits = self.out_conv(x)
         return {"out": logits}
 
