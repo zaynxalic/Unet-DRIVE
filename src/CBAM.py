@@ -1,5 +1,3 @@
-# https://github.com/Jongchan/attention-module/blob/master/MODELS/cbam.py
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -96,21 +94,21 @@ class CBAM(nn.Module):
         return x_out
 
 class ResCBAM(nn.Module):
+
     def __init__(self, n_features):
         super(ResCBAM, self).__init__()
-        self.resblock = []
+        # convolutions
+        self.cbam_list = []
         for i in range(2):
-            self.resblock.extend([
-            nn.BatchNorm2d(n_features), 
-            nn.ReLU(inplace=True),
-            nn.Conv2d(n_features, n_features, kernel_size=3, stride=1, padding=1, bias=False)
-        ])
-        self.res = nn.Sequential(*self.resblock)
-        # squeeze and excitation
-        self.sqex = CBAM(n_features)
+            self.cbam_list.extend([nn.BatchNorm2d(n_features),
+                nn.ReLU(inplace=True),
+                nn.Conv2d(n_features, n_features, kernel_size=3, stride=1, padding=1, bias=False)])
+    
+        self.rescbam = nn.Sequential(*self.cbam_list)
+        self.cbam  = CBAM(n_features)
 
     def forward(self, x):
-        y = self.res(x)
-        y = self.sqex(y)
+        y = self.rescbam(x)
+        y = self.cbam(y)
         y = torch.add(x, y)
         return y
