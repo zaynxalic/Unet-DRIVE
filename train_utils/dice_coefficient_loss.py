@@ -17,6 +17,14 @@ def build_target(target: torch.Tensor, num_classes: int = 2, ignore_index: int =
 
     return dice_target.permute(0, 3, 1, 2)
 
+def multiclass_dice_coeff(x: torch.Tensor, target: torch.Tensor, ignore_index: int = -100, epsilon=1e-6):
+    """Average of Dice coefficient for all classes"""
+    dice = 0.
+    for channel in range(x.shape[1]):
+        dice += dice_coeff(x[:, channel, ...], target[:, channel, ...], ignore_index, epsilon)
+
+    return dice / x.shape[1]
+
 def dice_coeff(x: torch.Tensor, target: torch.Tensor, ignore_index: int = -100, epsilon=1e-6):
     d = 0.
     batch_size = x.shape[0]
