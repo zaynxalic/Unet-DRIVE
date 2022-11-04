@@ -100,20 +100,24 @@ class ConfusionMatrix(object):
         iu = torch.diag(h) / (h.sum(1) + h.sum(0) - torch.diag(h))
         TP, FP, FN, TN = h[0,0], h[0,1], h[1,0], h[1,1]
         f1 = (2*TP)/(2*TP + FP + FN )
+        precison = TP/(TP+ FP)
+        recall = TP/(TP+ FN)
         mcc =  (TP * TN - FP * FN)/ torch.sqrt((TP + FP)*(TP + FN) * (TN + FP)*(TN + FN))
         return (
             'global correct: {:.1f}\n'
-            'average row correct: {}\n'
             'IoU: {}\n'
-            'f1: {}\n'
             'mcc : {}\n'
-            'mean IoU: {:.1f}').format(
-                acc_global.item() * 100,
+            'mean IoU: {:.1f}\n'
+            'precison: {:.1f}\n'
+            'recall: {:.1f}\n'
+            ).format(
                 ['{:.1f}'.format(i) for i in (acc * 100).tolist()],
                 ['{:.1f}'.format(i) for i in (iu * 100).tolist()],
-                f1.item() * 100,
                 mcc.item() * 100,
-                iu.mean().item() * 100)
+                iu.mean().item() * 100,
+                precison.item() * 100,
+                recall.item() * 100,
+                )
 
 
 class DiceCoefficient(object):

@@ -2,6 +2,7 @@ from http.client import UnimplementedFileMode
 import torch
 import torch.nn as nn
 from monai.losses.dice import DiceCELoss, DiceFocalLoss, DiceLoss
+from torch.nn.functional import softmax
 
 def build_target(target: torch.Tensor, num_classes: int = 2, ignore_index: int = -100):
     """build target for dice coefficient"""
@@ -15,7 +16,6 @@ def build_target(target: torch.Tensor, num_classes: int = 2, ignore_index: int =
         dice_target = nn.functional.one_hot(dice_target, num_classes).float()
 
     return dice_target.permute(0, 3, 1, 2)
-
 
 def dice_coeff(x: torch.Tensor, target: torch.Tensor, ignore_index: int = -100, epsilon=1e-6):
     d = 0.
@@ -37,91 +37,18 @@ def dice_coeff(x: torch.Tensor, target: torch.Tensor, ignore_index: int = -100, 
     return d / batch_size
 
 
-def multiclass_dice_coeff(x: torch.Tensor, target: torch.Tensor, ignore_index: int = -100, epsilon=1e-6):
-    """Average of Dice coefficient for all classes"""
-    dice = 0.
-    for channel in range(x.shape[1]):
-        dice += dice_coeff(x[:, channel, ...], target[:, channel, ...], ignore_index, epsilon)
-
-    return dice / x.shape[1]
-
-
-class SymmetricFocalLoss(nn.Module):
-    """_summary_
-    reference from: https://github.com/oikosohn/compound-loss-pytorch/blob/main/unified_focal_loss_pytorch.py
-    """
-    def __init__(self, delta=2, gamma=2., epsilon=1e-05):
-        super(SymmetricFocalLoss, self).__init__()
-        self.delta = delta
-        self.gamma = gamma
-        self.epsilon = epsilon
-
-    def forward(self, y_pred, y_true):
-
-        y_pred = torch.clamp(y_pred, self.epsilon, 1. - self.epsilon)
-        cross_entropy = -y_true * torch.log(y_pred)
-
-        # Calculate losses separately for each class
-        back_ce = torch.pow(1 - y_pred[:,0,:,:], self.gamma) * cross_entropy[:,0,:,:]
-        back_ce =  (1 - self.delta) * back_ce
-
-        fore_ce = torch.pow(1 - y_pred[:,1,:,:], self.gamma) * cross_entropy[:,1,:,:]
-        fore_ce = self.delta * fore_ce
-
-        loss = torch.mean(torch.sum(torch.stack([back_ce, fore_ce], axis=-1), axis=-1))
-
-        return loss
-
-class SymmetricFocalTverskyLoss(nn.Module):
-    def __init__(self, delta=0.7, gamma=0.75, epsilon=1e-05):
-        super(SymmetricFocalTverskyLoss, self).__init__()
-        self.delta = delta
-        self.gamma = gamma
-        self.epsilon = epsilon
-
-    def forward(self, y_pred, y_true):
-        y_pred = torch.clamp(y_pred, self.epsilon, 1. - self.epsilon)
-        axis =[2,3]
-        
-        # Calculate true positives (tp), false negatives (fn) and false positives (fp)     
-        tp = torch.sum(y_true * y_pred, axis=axis)
-        fn = torch.sum(y_true * (1-y_pred), axis=axis)
-        fp = torch.sum((1-y_true) * y_pred, axis=axis)
-        dice_class = (tp + self.epsilon)/(tp + self.delta*fn + (1-self.delta)*fp + self.epsilon)
-
-        # Calculate losses separately for each class, enhancing both classes
-        back_dice = (1-dice_class[:,0]) * torch.pow(1-dice_class[:,0], -self.gamma)
-        fore_dice = (1-dice_class[:,1]) * torch.pow(1-dice_class[:,1], -self.gamma) 
-
-        # Average class scores
-        loss = torch.mean(torch.stack([back_dice,fore_dice], axis=-1))
-        return loss
-class SymmetricUnifiedFocalLoss(nn.Module):
-    def __init__(self, weight=0.5, delta=0.6, gamma=0.5):
-        super(SymmetricUnifiedFocalLoss, self).__init__()
-        self.weight = weight
-        self.delta = delta
-        self.gamma = gamma
-
-    def forward(self, y_pred, y_true):
-      symmetric_ftl = SymmetricFocalTverskyLoss(delta=self.delta, gamma=self.gamma)(y_pred, y_true)
-      symmetric_fl = SymmetricFocalLoss(delta=self.delta, gamma=self.gamma)(y_pred, y_true)
-      if self.weight is not None:
-        return (self.weight * symmetric_ftl) + ((1-self.weight) * symmetric_fl)  
-      else:
-        return symmetric_ftl + symmetric_fl
-
 def dice_loss(loss: str, x: torch.Tensor, target: torch.Tensor, multiclass: bool = False, ignore_index: int = -100):
     if loss == 'diceloss':
     # Dice loss (objective to minimize) between 0 and 1
         x = nn.functional.softmax(x, dim=1)
-        fn = multiclass_dice_coeff if multiclass else dice_coeff
+        fn = dice_coeff
         return 1 - fn(x, target, ignore_index=ignore_index)
-    elif loss == 'unifiedfocalloss':
-        lossfunc = SymmetricFocalLoss()
+    
+    elif loss == 'diceceloss':
+        lossfunc = DiceCELoss()
         return lossfunc(x,target)
     elif loss == 'dicefocalloss':
-        lossfunc = SymmetricFocalLoss()
+        lossfunc = DiceFocalLoss()
         return lossfunc(x,target)
     else:
         raise NotImplementedError
