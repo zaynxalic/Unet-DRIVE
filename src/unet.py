@@ -20,7 +20,7 @@ class DoubleConv(nn.Module):
     #     else:
     #         return nn.Dropout(p = dropout) if dropout else nn.Dropout(p = 0.)
     
-    def __init__(self, in_channels, out_channels, mid_channels=None, dropout = 0.15, block_size = 6, residual = False):
+    def __init__(self, in_channels, out_channels, mid_channels=None, dropout = 0.2, block_size = 7, residual = False):
         super(DoubleConv, self).__init__()
         self.residual = residual
         if mid_channels is None:

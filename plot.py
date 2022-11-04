@@ -11,7 +11,7 @@ import seaborn as sns
     4) global corrects
 """
 
-result = open('1102172613_unetpp_dropblock.txt' ,'r')
+result = open('1103000653_unetpp_cbam_dropout.txt' ,'r')
 line = result.readline()
 epochs = []
 training_losses = []
