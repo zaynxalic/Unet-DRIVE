@@ -1,7 +1,7 @@
 from http.client import UnimplementedFileMode
 import torch
 import torch.nn as nn
-from monai.losses.dice import DiceCELoss, DiceFocalLoss, DiceLoss
+from monai.losses.dice import  DiceLoss,GeneralizedDiceLoss, GeneralizedDiceFocalLoss
 from torch.nn.functional import softmax
 
 def build_target(target: torch.Tensor, num_classes: int = 2, ignore_index: int = -100):
@@ -52,11 +52,11 @@ def dice_loss(loss: str, x: torch.Tensor, target: torch.Tensor, multiclass: bool
         fn = dice_coeff
         return 1 - fn(x, target, ignore_index=ignore_index)
     
-    elif loss == 'diceceloss':
-        lossfunc = DiceCELoss()
+    elif loss == 'gdiceloss':
+        lossfunc = GeneralizedDiceLoss(softmax = True)
         return lossfunc(x,target)
-    elif loss == 'dicefocalloss':
-        lossfunc = DiceFocalLoss()
+    elif loss == 'gdicefocalloss':
+        lossfunc = GeneralizedDiceFocalLoss(lambda_gdl=0, lambda_focal=1.0, softmax = True)
         return lossfunc(x,target)
     else:
         raise NotImplementedError

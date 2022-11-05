@@ -9,7 +9,7 @@ import transforms as T
 import yaml
 from torchvision import transforms as F
 from pytorch_ranger import Ranger
-
+import re
 class EnvVarLoader(yaml.SafeLoader):
     pass
 
@@ -104,7 +104,8 @@ def main(configs):
     elif(configs.mode == "unetpp"):
         model = Unetpp(in_channels=3, num_classes=num_classes, base_c=Unetpp_base_c, is_cbam = is_cbam, is_aspp = is_aspp, is_sqex = is_sqex).to(device)
     else:
-        raise NotImplementedError
+        raise ValueError(f"The variable {configs.mode} is not defined.")
+    
     total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f"The total number of trainable parameters are {total_params}")
     params_to_optimize = [p for p in model.parameters() if p.requires_grad]
@@ -129,6 +130,7 @@ def main(configs):
             scaler.load_state_dict(checkpoint["scaler"])
 
     best_dice = 0.
+    best_rvd = 100.
     start_time = time.time()
     for epoch in range(configs.start_epoch, configs.epochs):
         mean_loss, lr = train_one_epoch(lossfunc, model, optimizer, train_loader, device, epoch, num_classes,
@@ -136,7 +138,13 @@ def main(configs):
 
         confmat, dice = evaluate(model, val_loader, device=device, num_classes=num_classes)
         val_info = str(confmat)
+        # TODO: check whether the value is for rvd
+        if re.findall(r'rvd : (.*)\n', val_info):
+            rvd = float(re.findall(r'rvd : (.*)\n', val_info)[0])
+        else:
+            rvd = 10000
         print(val_info)
+        print(f"rvd: {rvd}")
         print(f"dice coefficient: {dice:.3f}")
         # write into txt
         with open(results_file, "a") as f:
@@ -148,8 +156,9 @@ def main(configs):
             f.write(train_info + val_info + "\n\n")
 
         if configs.save_best == 1:
-            if best_dice < dice:
+            if best_dice <=  dice and best_rvd > abs(rvd):
                 best_dice = dice
+                best_rvd = abs(rvd)
             else:
                 continue
 

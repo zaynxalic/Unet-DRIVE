@@ -11,7 +11,7 @@ import seaborn as sns
     4) global corrects
 """
 
-result = open('1103000653_unetpp_cbam_dropout.txt' ,'r')
+result = open('1105174446_unet_cbam_diceloss.txt' ,'r')
 line = result.readline()
 epochs = []
 training_losses = []
@@ -25,6 +25,9 @@ mccs = []
 IoU0s = []
 IoU1s = []
 mean_IoUs = []
+precisions = []
+recalls = []
+rvds = []
 
 epoch = float(re.findall(r"[-+]?(?:\d*\.\d+|\d+)", line)[0])
 epochs.append(epoch)
@@ -48,7 +51,7 @@ global_corrects.append(global_correct)
 line = result.readline()
 line = result.readline()
 line = result.readline()
-f1 = float(re.findall(r"[-+]?(?:\d*\.\d+|\d+)", line)[0])
+f1 = float(re.findall(r"[-+]?(?:\d*\.\d+|\d+)", line)[1])
 f1s.append(f1)
 
 line = result.readline()
@@ -58,10 +61,18 @@ except:
     mcc = 0
 mccs.append(mcc)
 
+line = result.readline()
+try:
+    rvd = float(re.findall(r"[-+]?(?:\d*\.\d+|\d+)", line)[0]) 
+except:
+    rvd = 0
+rvds.append(rvd)
+
 
 line = result.readline()
 mean_IoU =float(re.findall(r"[-+]?(?:\d*\.\d+|\d+)", line)[0])
 mean_IoUs.append(mean_IoU)
+
 
 while line:
     line = result.readline()
@@ -89,7 +100,7 @@ while line:
         line = result.readline()
         line = result.readline()
         line = result.readline()
-        f1 = float(re.findall(r"[-+]?(?:\d*\.\d+|\d+)", line)[0])
+        f1  = float(re.findall(r"[-+]?(?:\d*\.\d+|\d+)", line)[1])
         f1s.append(f1)
 
         line = result.readline()
@@ -99,11 +110,17 @@ while line:
             mcc = 0
         mccs.append(mcc)
 
+        line = result.readline()
+        try:
+            rvd = float(re.findall(r"[-+]?(?:\d*\.\d+|\d+)", line)[0]) 
+        except:
+            rvd = 0
+        rvds.append(rvd)
+
 
         line = result.readline()
         mean_IoU =float(re.findall(r"[-+]?(?:\d*\.\d+|\d+)", line)[0])
         mean_IoUs.append(mean_IoU)
-
 plot = {}
 plot['training loss'] = training_losses
 global_corrects = [float(i) for i in global_corrects]
@@ -113,7 +130,7 @@ plot['global corrects'] = np.asarray(global_corrects)/100
 plot['mean iou'] = np.asarray(mean_IoUs)/100
 max_arg = np.argmax(mean_IoUs)
 print(max_arg)
-print(f"Maximum IoU is {mean_IoUs[max_arg]}, ACC is {global_corrects[max_arg]}, DICE is {dices[max_arg]}, MCC is is {mccs[max_arg]}, f1 is {f1s[max_arg]}")
+print(f"Maximum IoU is {mean_IoUs[max_arg]}, ACC is {global_corrects[max_arg]}, DICE is {dices[max_arg]}, MCC is is {mccs[max_arg]}, RVD is {rvds[max_arg]}")
 
 sns.lineplot(data=plot)
 

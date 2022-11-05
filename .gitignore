@@ -3,5 +3,8 @@
 src/__pycache__/__init__.cpython-38.pyc
 src/__pycache__/mobilenet_unet.cpython-38.pyc
 src/__pycache__/unet.cpython-38.pyc
-save_weights/*.pth
+save_weights/*
+DRIVE_30/
+DRIVE_35/
+DRIVE_40/
 *.txt_
