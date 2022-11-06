@@ -3,15 +3,15 @@ from torch import nn
 import train_utils.distributed_utils as utils
 from train_utils import train_one_epoch, evaluate, create_lr_scheduler
 from drive_dataset import DriveDataset
-from src import UNet
+from src import UNet,Unetpp
 import os as os
 import numpy as np
 from PIL import Image
 from torchvision import transforms
-
-
+import matplotlib.pyplot as plt
+# os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 if __name__ == '__main__':
-    weights_path = "./save_weights/best_model_pure_unet.pth"
+    weights_path = r"save_weights/best_model_unet-best.pth"
     img_path = "./DRIVE/test/images/01_test.tif"
     roi_mask_path = "./DRIVE/test/mask/01_test_mask.gif"
     
@@ -31,7 +31,13 @@ if __name__ == '__main__':
     else:
         device = torch.device('cpu')
     
-    model = UNet(in_channels=3, num_classes=2, base_c=32)
+    UNet_base_c = 32
+    Unetpp_base_c = 32
+    is_cbam = True
+    is_aspp = True
+    is_sqex = False
+    model = Unetpp(in_channels=3, num_classes=2, base_c=Unetpp_base_c, is_cbam = is_cbam, is_aspp = is_aspp, is_sqex = is_sqex).to(device)
+    # model = UNet(in_channels=3, drop_out=0.0, num_classes=2, base_c=UNet_base_c, is_cbam = is_cbam, is_aspp = is_aspp, is_sqex = is_sqex).to(device)
     model.load_state_dict(torch.load(weights_path, map_location='cpu')['model'])
     model.to(device)
     model.eval()
@@ -50,6 +56,10 @@ if __name__ == '__main__':
     prediction[prediction == 1] = 255
     prediction[roi_img == 0] = 0
     mask = Image.fromarray(prediction)
-    mask.save("test_result.pdf")
+    # Returns true if the request was successful.
+    mask.save("./result/best_model_unet_best.png")
+    # plt.imshow(mask)
+    # plt.show()
+    
 
            

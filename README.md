@@ -1,4 +1,13 @@
+
 # U-Net(Convolutional Networks for Biomedical Sementic Segmentation)
+
+## Group
+Group Name: Project Group 15
+
+Group Members:
+Xuecheng Zhang u6284513
+Junyi Men u7233481
+Ke Ning u7175553
 
 ## Reference 
 * [https://github.com/milesial/Pytorch-UNet](https://github.com/milesial/Pytorch-UNet)
@@ -13,13 +22,20 @@
 
 ## File Structure:
 ```
+  ├── configs: history ofparameters used by training, name of config indicate the parameters used by abligation study
+  ├── DRIVE: Dataset used.
   ├── src: Construct U-net
   ├── train_utils: Training, Validation and Multi-GPU training model
   ├── my_dataset.py: Dataset for reading DRIVE dataset(Retinal vascular segmentation)
-  ├── train.py: Training in single GPU
-  ├── train_multi_GPU.py: Trining in multiple GPU
-  ├── predict.py: predict script, using trained weights test the result
-  └── compute_mean_std.py: statistic of mean and standard for each channel
+  ├── compute_mean_std.py: Compute the mean and standard for dataset, used by pre-processing.
+  ├── drive_dataset.py: load dataset from DRIVE
+  ├── train.py: Training in single GPU.
+  ├── predict.py: predict the visual result, using all trained weights test the result for all images in dataset.
+  ├── predict.py: predict the visual result, using specified weights test the result for single image.
+  └── plot.py: Plot the training process and saved to current folder
+  └── train.config: Config parameters of traning
+  └── train.py: train the model based on parameters
+  └── transforms.py: image transforms, resize, crop etc.
 ```
 
 ## Download DRIVE datasets:
@@ -28,16 +44,22 @@
 
 ## training method
 * Make sure to prepare datasets
-* If training on single GPU or cpu, using traing.py script
-* If using multi-GPU, using `torchrun --nproc_per_node=8 train_multi_GPU.py` commend, `nproc_per_node` parameter is the number of GPU
-* If want to specify which GPU want to use, add `CUDA_VISIBLE_DEVICES=0,3` to the front of commend(For example, only use first and fourth GPU in computer)
-* `CUDA_VISIBLE_DEVICES=0,3 torchrun --nproc_per_node=2 train_multi_GPU.py`
+* Make sure your current folder is in the root folder of UNet-DRIVE, before you run the script.
+* If training on single GPU or cpu, using traing.py using script
 ```
-/home/ning/anaconda3/envs/ning/bin/python /home/ning/Desktop/Aaron/Unet-DRIVE/train.py
+python train.py
 ```
 
 ## Visualization of Result
-* 
+* After training, the folder will save a new weights in 'save_weights' folder, a new config in 'configs' folder
+* If want to predict the result and save segmented images, running script
+```
+python predict_batch.py
+```
+* If want to predict the single image, modify the path in the file predict.py, then running script
+```
+python predict.py
+```
 
 ## Notification
 * When running training script, need to specify `--data-path`to the file where your root folder of your `DRIVE` file**Root Folder**
@@ -46,6 +68,3 @@
 
 ## pre-trained weights using Unet running on DRIVE datasets(Only for testing)
 - link: https://pan.baidu.com/s/1BOqkEpgt1XRqziyc941Hcw  password: p50a
-
-## Our Unet use Bilinear interpolation upsampling by default.
-![u-net](unet.png)

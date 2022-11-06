@@ -4,7 +4,7 @@ import torch.nn.functional as F
 
 
 from .unet import DoubleConv
-from .CBAM import CBAM,ResCBAM
+from .CBAM import ResCBAM
 from .ASPP import ASPP
 # from unet import DoubleConv
 # from CBAM import CBAM
@@ -32,7 +32,7 @@ class Up(nn.Module):
     
 
 class Unetpp(nn.Module):
-    def __init__(self, in_channels=3, num_classes=2, base_c =32, is_cbam = False, is_aspp = False, is_sqex = False) -> None:
+    def __init__(self, in_channels=3, num_classes=2, base_c =32, drop_out=0.2,is_cbam = False, is_aspp = False, is_sqex = False) -> None:
         super(Unetpp, self).__init__()
         self.pool = nn.MaxPool2d(2)
         self.up = Up()

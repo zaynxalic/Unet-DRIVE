@@ -3,6 +3,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class BasicConv(nn.Module):
+    """
+    reference from https://github.com/elbuco1/CBAM/blob/master/src/models/models/cbam.py
+    """
     def __init__(self, in_planes, out_planes, kernel_size, stride=1, padding=0, dilation=1, groups=1, relu=True, bn=True, bias=False):
         super(BasicConv, self).__init__()
         self.out_channels = out_planes
@@ -42,13 +45,8 @@ class ChannelGate(nn.Module):
             elif pool_type=='max':
                 max_pool = F.max_pool2d( x, (x.size(2), x.size(3)), stride=(x.size(2), x.size(3)))
                 channel_att_raw = self.mlp( max_pool )
-            elif pool_type=='lp':
-                lp_pool = F.lp_pool2d( x, 2, (x.size(2), x.size(3)), stride=(x.size(2), x.size(3)))
-                channel_att_raw = self.mlp( lp_pool )
-            elif pool_type=='lse':
-                # LSE pool only
-                lse_pool = logsumexp_2d(x)
-                channel_att_raw = self.mlp( lse_pool )
+            else:
+                raise ValueError(f"{pool_type} is not defined.")
 
             if channel_att_sum is None:
                 channel_att_sum = channel_att_raw

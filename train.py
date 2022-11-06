@@ -10,6 +10,8 @@ import yaml
 from torchvision import transforms as F
 from pytorch_ranger import Ranger
 import re
+import shutil
+
 class EnvVarLoader(yaml.SafeLoader):
     pass
 
@@ -57,7 +59,8 @@ class Preprocessing:
 
 def main(configs):
     if torch.cuda.is_available():
-        device = torch.device(f'cuda:{torch.cuda.device_count()-1}')
+        # device = torch.device(f'cuda:{torch.cuda.device_count()-1}')
+        device = torch.device('cuda:0')
     else:
         device = torch.device('cpu')
     batch_size = configs.batch_size
@@ -95,8 +98,11 @@ def main(configs):
     is_aspp = configs.is_aspp
     is_sqex = configs.is_sqex
     lossfunc = configs.loss
-    UNet_base_c = 8
-    Unetpp_base_c = 32
+    UNet_base_c = configs.UNet_base_c
+    Unetpp_base_c = configs.Unetpp_base_c
+    config_saved = False
+
+    
     print(f'Parameters loss function: {lossfunc}, is_cbam: {is_cbam}, is_aspp: {is_aspp}, is_sqex: {is_sqex}, UNet_base_c: {UNet_base_c}, Unetpp_base_c: {Unetpp_base_c}')
     if(configs.mode == "unet"):
         # 32 16 8
@@ -148,7 +154,7 @@ def main(configs):
         print(f"dice coefficient: {dice:.3f}")
         # write into txt
         with open(results_file, "a") as f:
-            # 记录每个epoch对应的train_loss、lr以及验证集各指标
+            # record train_loss, lr and validation dataset metrices for each epoch
             train_info = f"[epoch: {epoch}]\n" \
                          f"train_loss: {mean_loss:.4f}\n" \
                          f"lr: {lr:.6f}\n" \
@@ -156,9 +162,10 @@ def main(configs):
             f.write(train_info + val_info + "\n\n")
 
         if configs.save_best == 1:
-            if best_dice <=  dice and best_rvd > abs(rvd):
+            # if best_dice <=  dice and best_rvd > abs(rvd):
+            if best_dice <  dice:
                 best_dice = dice
-                best_rvd = abs(rvd)
+                # best_rvd = abs(rvd)
             else:
                 continue
 
@@ -170,7 +177,12 @@ def main(configs):
             save_file["scaler"] = scaler.state_dict()
 
         if configs.save_best == 1:
-            torch.save(save_file, "save_weights/best_model" + configs.model_id + ".pth")
+            torch.save(save_file, "save_weights/best_model_" + configs.model_id + ".pth")
+            if(config_saved == False):
+                config_saved = True
+                src_path = r"/home/ning/Desktop/Aaron/Unet-DRIVE/train.config"
+                dst_path = r"/home/ning/Desktop/Aaron/Unet-DRIVE/configs/" + configs.model_id + ".config"
+            shutil.copy(src_path, dst_path)
         else:
             torch.save(save_file, "save_weights/model_{}.pth".format(epoch))
 
@@ -178,9 +190,12 @@ def main(configs):
     total_time_str = str(datetime.timedelta(seconds=int(total_time)))
     print("training time {}".format(total_time_str))
 
-if __name__ == '__main__':
+
+if __name__ == '__main__':  
     if not os.path.exists("./save_weights"):
         os.mkdir("./save_weights")
+    if not os.path.exists("./configs"):
+        os.mkdir("./configs")
     
     configs = yaml.load(open('train.config'), Loader=EnvVarLoader)
     configs = extract_dict(configs)

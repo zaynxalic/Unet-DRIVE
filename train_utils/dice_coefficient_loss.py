@@ -56,7 +56,7 @@ def dice_loss(loss: str, x: torch.Tensor, target: torch.Tensor, multiclass: bool
         lossfunc = GeneralizedDiceLoss(softmax = True)
         return lossfunc(x,target)
     elif loss == 'gdicefocalloss':
-        lossfunc = GeneralizedDiceFocalLoss(lambda_gdl=0, lambda_focal=1.0, softmax = True)
+        lossfunc = GeneralizedDiceFocalLoss(lambda_gdl=0.8, lambda_focal=0.2, softmax = True)
         return lossfunc(x,target)
     else:
         raise NotImplementedError

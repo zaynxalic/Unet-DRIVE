@@ -7,7 +7,7 @@ import re
 def criterion(lossfunc: str, inputs, target, loss_weight=None, num_classes: int = 2, dice: bool = True, ignore_index: int = -100):
     losses = {}
     for name, x in inputs.items():
-        # 忽略target中值为255的像素，255的像素是目标边缘或者padding填充
+        # Ignore the pixels have value 255, it is the padding or edge pixels.
         loss = nn.functional.cross_entropy(x, target, ignore_index=ignore_index, weight=loss_weight)
         if dice is True:
             dice_target = build_target(target, num_classes, ignore_index)
@@ -49,7 +49,7 @@ def train_one_epoch(lossfunc, model, optimizer, data_loader, device, epoch, num_
     header = 'Epoch: [{}]'.format(epoch)
 
     if num_classes == 2:
-        # 设置cross_entropy中背景和前景的loss权重(根据自己的数据集进行设置)
+        # configure the weight of front and background, based on your own dataset
         loss_weight = torch.as_tensor([1.0, 2.0], device=device)
     else:
         loss_weight = None
@@ -90,11 +90,11 @@ def create_lr_scheduler(optimizer,
     def f(x):
         if warmup is True and x <= (warmup_epochs * num_step):
             alpha = float(x) / (warmup_epochs * num_step)
-            # warmup过程中lr倍率因子从warmup_factor -> 1
+            # in the process of warmup,lr from warmup factor to 1.
             return warmup_factor * (1 - alpha) + alpha
         else:
-            # warmup后lr倍率因子从1 -> 0
-            # 参考deeplab_v2: Learning rate policy
+            # after warmup, lr multiplier factor from 1 -> 0
+            # reference: deeplab_v2: Learning rate policy
             return (1 - (x - warmup_epochs * num_step) / ((epochs - warmup_epochs) * num_step)) ** 0.9
 
     return torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=f)

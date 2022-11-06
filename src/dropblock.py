@@ -4,6 +4,9 @@ from torch import nn
 
 
 class DropBlock2D(nn.Module):
+    """
+    reference from https://github.com/miguelvr/dropblock/blob/master/dropblock/dropblock.py
+    """
     def __init__(self, drop_prob, block_size):
         super(DropBlock2D, self).__init__()
         self.drop_prob = drop_prob

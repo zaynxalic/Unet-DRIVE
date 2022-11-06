@@ -6,20 +6,29 @@ from .CBAM import *
 from .dropblock import DropBlock2D
 from .ASPP import ASPP
 from .sqex import squeeze_excite as sqex, ResBlockSqEx as res_sqex
+import yaml
 
+
+class EnvVarLoader(yaml.SafeLoader):
+    pass
+
+class extract_dict(object):
+    """
+    The object can be read by call instead of using dictionary
+    """
+    def __init__(self, d):
+        self.__dict__ = d
+        
+configs = yaml.load(open('train.config'), Loader=EnvVarLoader)
+configs = extract_dict(configs)
+    
 if torch.cuda.is_available():
     device = torch.device(f'cuda:{torch.cuda.device_count()-1}')
 else:
     device = torch.device('cpu')
 
 
-class DoubleConv(nn.Module):
-    # def getDrop():
-    #     if configs.dropblock:
-    #         return DropBlock2D(drop_prob=0.1, block_size=7)
-    #     else:
-    #         return nn.Dropout(p = dropout) if dropout else nn.Dropout(p = 0.)
-    
+class   DoubleConv(nn.Module):    
     def __init__(self, in_channels, out_channels, mid_channels=None, dropout = 0.2, block_size = 7, residual = False):
         super(DoubleConv, self).__init__()
         self.residual = residual
@@ -100,6 +109,7 @@ class UNet(nn.Module):
                  num_classes: int = 2,
                  bilinear: bool = True,
                  base_c: int = 64, 
+                 drop_out: float = 0.2, 
                  is_cbam: bool = False,
                  is_aspp: bool = False,
                  is_sqex: bool = False):

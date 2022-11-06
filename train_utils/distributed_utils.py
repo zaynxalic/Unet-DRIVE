@@ -64,7 +64,8 @@ class ConfusionMatrix(object):
     def __init__(self, num_classes):
         self.num_classes = num_classes
         if torch.cuda.is_available():
-            self.device = torch.device(f'cuda:{torch.cuda.device_count()-1}')
+            # self.device = torch.device(f'cuda:{torch.cuda.device_count()-1}')
+            self.device = torch.device(f'cuda:0')
         else:
             self.device = torch.device('cpu')
         self.mat = torch.zeros((self.num_classes, self.num_classes), dtype=torch.int64, device=self.device)
